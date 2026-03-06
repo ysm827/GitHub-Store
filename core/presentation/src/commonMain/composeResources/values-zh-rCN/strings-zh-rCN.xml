@@ -106,6 +106,7 @@
     <string name="logout">退出登录</string>
 
     <string name="logout_success">已成功退出，正在跳转…</string>
+    <string name="cache_cleared">缓存已成功清除</string>
 
     <string name="warning">警告！</string>
     <string name="logout_confirmation">确定要退出登录吗？</string>

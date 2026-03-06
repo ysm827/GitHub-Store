@@ -126,6 +126,7 @@
 
     <!-- Snackbar -->
     <string name="logout_success">সফলভাবে লগআউট হয়েছে, রিডাইরেক্ট করা হচ্ছে...</string>
+    <string name="cache_cleared">ক্যাশ সফলভাবে পরিষ্কার করা হয়েছে</string>
 
     <!-- Dialog -->
     <string name="warning">সতর্কতা!</string>

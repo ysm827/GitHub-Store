@@ -104,6 +104,7 @@
     <string name="logout">Выйти</string>
 
     <string name="logout_success">Вы успешно вышли, перенаправление...</string>
+    <string name="cache_cleared">Кэш успешно очищен</string>
 
     <string name="warning">Внимание!</string>
     <string name="logout_confirmation">Вы уверены, что хотите выйти?</string>

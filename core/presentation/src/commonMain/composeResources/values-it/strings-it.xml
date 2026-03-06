@@ -126,6 +126,7 @@
 
     <!-- Snackbar -->
     <string name="logout_success">Uscito con successo, reindirizzamento…</string>
+    <string name="cache_cleared">Cache cancellata con successo</string>
 
     <!-- Dialog -->
     <string name="warning">Attenzione!</string>

@@ -125,6 +125,7 @@
 
     <!-- Snackbar -->
     <string name="logout_success">Başarılı şekilde çıkış yapıldı, yönlendiriliyor...</string>
+    <string name="cache_cleared">Önbellek başarıyla temizlendi</string>
 
     <!-- Dialog -->
     <string name="warning">Uyarı!</string>
