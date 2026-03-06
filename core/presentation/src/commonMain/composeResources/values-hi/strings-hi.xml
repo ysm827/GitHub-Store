@@ -453,7 +453,7 @@
     <string name="open_in_app">ऐप में खोलें</string>
     <string name="no_github_link_in_clipboard">क्लिपबोर्ड में कोई GitHub लिंक नहीं मिला</string>
 
-    <string name="storage">Storage</string>
+    <string name="storage">संग्रहण</string>
     <string name="clear_cache">कैश साफ़ करें</string>
     <string name="current_size">वर्तमान आकार:</string>
     <string name="clear">साफ़ करें</string>

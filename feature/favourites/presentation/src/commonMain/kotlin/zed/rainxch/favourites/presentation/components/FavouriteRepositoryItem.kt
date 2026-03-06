@@ -68,8 +68,8 @@ fun FavouriteRepositoryItem(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable(onClick = onDevProfileClick)
-                    .clip(RoundedCornerShape(24.dp)),
+                    .clip(RoundedCornerShape(24.dp))
+                    .clickable(onClick = onDevProfileClick),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {

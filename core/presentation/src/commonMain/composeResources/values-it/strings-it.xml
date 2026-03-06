@@ -454,7 +454,7 @@
     <string name="open_in_app">Apri nell\'app</string>
     <string name="no_github_link_in_clipboard">Nessun link GitHub trovato negli appunti</string>
 
-    <string name="storage">Storage</string>
+    <string name="storage">Archiviazione</string>
     <string name="clear_cache">Pulisci cache</string>
     <string name="current_size">Dimensione attuale:</string>
     <string name="clear">Pulisci</string>

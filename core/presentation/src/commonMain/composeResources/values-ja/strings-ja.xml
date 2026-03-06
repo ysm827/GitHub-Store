@@ -417,7 +417,7 @@
     <string name="open_in_app">アプリで開く</string>
     <string name="no_github_link_in_clipboard">クリップボードにGitHubリンクが見つかりません</string>
 
-    <string name="storage">Storage</string>
+    <string name="storage">ストレージ</string>
     <string name="clear_cache">キャッシュをクリア</string>
     <string name="current_size">現在のサイズ:</string>
     <string name="clear">クリア</string>
