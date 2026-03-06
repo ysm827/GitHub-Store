@@ -121,13 +121,13 @@ compose.desktop {
                 }
             )
             windows {
-                iconFile.set(project.file("logo/app_icon.ico"))
+                iconFile.set(project.file("src/jvmMain/resources/logo/app_icon.ico"))
                 menuGroup = "Github Store"
                 shortcut = true
                 perUserInstall = true
             }
             macOS {
-                iconFile.set(project.file("logo/app_icon.icns"))
+                iconFile.set(project.file("src/jvmMain/resources/logo/app_icon.icns"))
                 bundleID = "zed.rainxch.githubstore"
 
                 infoPlist {
@@ -147,7 +147,7 @@ compose.desktop {
                 }
             }
             linux {
-                iconFile.set(project.file("logo/app_icon.png"))
+                iconFile.set(project.file("src/jvmMain/resources/logo/app_icon.png"))
                 appRelease = libs.versions.projectVersionName.get().toString()
                 debPackageVersion = libs.versions.projectVersionName.get().toString()
                 menuGroup = "Development"
