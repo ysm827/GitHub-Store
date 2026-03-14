@@ -69,6 +69,8 @@ kotlin {
             implementation(libs.liquid)
             implementation(libs.jetbrains.compose.material.icons.extended)
 
+            implementation(libs.touchlab.kermit)
+
             implementation(compose.runtime)
             implementation(compose.foundation)
             implementation(libs.jetbrains.compose.material3)

@@ -4,6 +4,7 @@ import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.os.Build
+import co.touchlab.kermit.Logger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -86,31 +87,33 @@ class GithubStoreApp : Application() {
         }
     }
 
-    /**
-     * Automatically registers GitHub Store itself as a tracked installed app on first launch.
-     * This allows the app to track its own updates and auto-update via Shizuku.
-     */
     private fun registerSelfAsInstalledApp() {
         appScope.launch {
             try {
                 val repo = get<InstalledAppsRepository>()
-                val existing = repo.getAppByPackage(SELF_PACKAGE_NAME)
+                val selfPackageName = packageName
+                val existing = repo.getAppByPackage(selfPackageName)
+
                 if (existing != null) return@launch
 
                 val packageMonitor = get<PackageMonitor>()
-                val systemInfo = packageMonitor.getInstalledPackageInfo(SELF_PACKAGE_NAME)
+                val systemInfo = packageMonitor.getInstalledPackageInfo(selfPackageName)
+                if (systemInfo == null) {
+                    Logger.w { "GithubStoreApp: Skip self-registration, package info missing for $selfPackageName" }
+                    return@launch
+                }
 
                 val now = System.currentTimeMillis()
-                val versionName = systemInfo?.versionName ?: ""
-                val versionCode = systemInfo?.versionCode ?: 0L
+                val versionName = systemInfo.versionName
+                val versionCode = systemInfo.versionCode
 
                 val selfApp =
                     InstalledApp(
-                        packageName = SELF_PACKAGE_NAME,
+                        packageName = selfPackageName,
                         repoId = 0L,
                         repoName = SELF_REPO_NAME,
                         repoOwner = SELF_REPO_OWNER,
-                        repoOwnerAvatarUrl = "https://avatars.githubusercontent.com/u/221085707",
+                        repoOwnerAvatarUrl = SELF_AVATAR_URL,
                         repoDescription = "A cross-platform app store for GitHub releases",
                         primaryLanguage = "Kotlin",
                         repoUrl = "https://github.com/$SELF_REPO_OWNER/$SELF_REPO_NAME",
@@ -137,15 +140,19 @@ class GithubStoreApp : Application() {
                     )
 
                 repo.saveInstalledApp(selfApp)
-            } catch (_: Exception) {
+                Logger.e("GitHub Store App: App added")
+            } catch (e: Exception) {
+                Logger.e("GitHub Store App", e)
             }
         }
     }
 
     companion object {
-        private const val SELF_PACKAGE_NAME = "zed.rainxch.githubstore"
         private const val SELF_REPO_OWNER = "OpenHub-Store"
         private const val SELF_REPO_NAME = "GitHub-Store"
+        private const val SELF_AVATAR_URL =
+            @Suppress("ktlint:standard:max-line-length")
+            "https://raw.githubusercontent.com/OpenHub-Store/GitHub-Store/refs/heads/main/media-resources/app_icon.png"
         const val UPDATES_CHANNEL_ID = "app_updates"
         const val UPDATE_SERVICE_CHANNEL_ID = "update_service"
     }
