@@ -137,7 +137,7 @@ class AutoUpdateWorker(
                     file.delete()
                     Logger.d { "AutoUpdateWorker: Deleted mismatched existing file for ${app.appName}" }
                 }
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 file.delete()
                 Logger.d { "AutoUpdateWorker: Deleted unextractable existing file for ${app.appName}" }
             }
@@ -156,21 +156,20 @@ class AutoUpdateWorker(
 
         val currentApp = installedAppsRepository.getAppByPackage(app.packageName)
 
-        // TOFU: Block auto-update if signing key changed
-        if (currentApp != null &&
-            currentApp.signingFingerprint != null &&
-            apkInfo.signingFingerprint != null &&
-            currentApp.signingFingerprint != apkInfo.signingFingerprint
-        ) {
-            Logger.e {
-                "AutoUpdateWorker: Signing key mismatch for ${app.appName}! " +
-                    "Expected: ${currentApp.signingFingerprint}, got: ${apkInfo.signingFingerprint}. " +
-                    "Skipping auto-update."
+        if (currentApp?.signingFingerprint != null) {
+            val expected = currentApp.signingFingerprint!!.trim().uppercase()
+            val actual = apkInfo.signingFingerprint?.trim()?.uppercase()
+            if (actual == null || expected != actual) {
+                Logger.e {
+                    "AutoUpdateWorker: Signing key mismatch for ${app.appName}! " +
+                        "Expected: ${currentApp.signingFingerprint}, got: ${apkInfo.signingFingerprint}. " +
+                        "Skipping auto-update."
+                }
+                throw IllegalStateException(
+                    "Signing fingerprint verification failed for ${app.appName}, blocking auto-update",
+                )
             }
-            throw IllegalStateException("Signing key changed for ${app.appName}, blocking auto-update")
-        }
 
-        if (currentApp != null) {
             installedAppsRepository.updateApp(
                 currentApp.copy(
                     isPendingInstall = true,
@@ -181,17 +180,17 @@ class AutoUpdateWorker(
                     latestVersionCode = apkInfo.versionCode,
                 ),
             )
-        }
 
-        Logger.d { "AutoUpdateWorker: Installing ${app.appName} via Shizuku" }
-        try {
-            installer.install(filePath, ext)
-        } catch (e: Exception) {
-            installedAppsRepository.updatePendingStatus(app.packageName, false)
-            throw e
-        }
+            Logger.d { "AutoUpdateWorker: Installing ${app.appName} via Shizuku" }
+            try {
+                installer.install(filePath, ext)
+            } catch (e: Exception) {
+                installedAppsRepository.updatePendingStatus(app.packageName, false)
+                throw e
+            }
 
-        Logger.d { "AutoUpdateWorker: Install command completed for ${app.appName}, waiting for system confirmation via broadcast" }
+            Logger.d { "AutoUpdateWorker: Install command completed for ${app.appName}, waiting for system confirmation via broadcast" }
+        }
     }
 
     private fun createForegroundInfo(

@@ -6,6 +6,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
+import zed.rainxch.core.data.services.shizuku.model.ShizukuStatus
 import zed.rainxch.core.domain.model.GithubAsset
 import zed.rainxch.core.domain.model.InstallerType
 import zed.rainxch.core.domain.model.SystemArchitecture
@@ -26,9 +27,8 @@ import zed.rainxch.core.domain.system.InstallerInfoExtractor
 class ShizukuInstallerWrapper(
     private val androidInstaller: Installer,
     private val shizukuServiceManager: ShizukuServiceManager,
-    private val themesRepository: ThemesRepository
+    private val themesRepository: ThemesRepository,
 ) : Installer {
-
     companion object {
         private const val TAG = "ShizukuInstaller"
     }
@@ -53,50 +53,39 @@ class ShizukuInstallerWrapper(
         }
     }
 
-    // ==================== Delegated methods (always go to AndroidInstaller) ====================
+    override suspend fun isSupported(extOrMime: String): Boolean = androidInstaller.isSupported(extOrMime)
 
-    override suspend fun isSupported(extOrMime: String): Boolean =
-        androidInstaller.isSupported(extOrMime)
+    override fun isAssetInstallable(assetName: String): Boolean = androidInstaller.isAssetInstallable(assetName)
 
-    override fun isAssetInstallable(assetName: String): Boolean =
-        androidInstaller.isAssetInstallable(assetName)
+    override fun choosePrimaryAsset(assets: List<GithubAsset>): GithubAsset? = androidInstaller.choosePrimaryAsset(assets)
 
-    override fun choosePrimaryAsset(assets: List<GithubAsset>): GithubAsset? =
-        androidInstaller.choosePrimaryAsset(assets)
+    override fun detectSystemArchitecture(): SystemArchitecture = androidInstaller.detectSystemArchitecture()
 
-    override fun detectSystemArchitecture(): SystemArchitecture =
-        androidInstaller.detectSystemArchitecture()
-
-    override fun isObtainiumInstalled(): Boolean =
-        androidInstaller.isObtainiumInstalled()
+    override fun isObtainiumInstalled(): Boolean = androidInstaller.isObtainiumInstalled()
 
     override fun openInObtainium(
         repoOwner: String,
         repoName: String,
-        onOpenInstaller: () -> Unit
+        onOpenInstaller: () -> Unit,
     ) = androidInstaller.openInObtainium(repoOwner, repoName, onOpenInstaller)
 
-    override fun isAppManagerInstalled(): Boolean =
-        androidInstaller.isAppManagerInstalled()
+    override fun isAppManagerInstalled(): Boolean = androidInstaller.isAppManagerInstalled()
 
     override fun openInAppManager(
         filePath: String,
-        onOpenInstaller: () -> Unit
+        onOpenInstaller: () -> Unit,
     ) = androidInstaller.openInAppManager(filePath, onOpenInstaller)
 
-    override fun getApkInfoExtractor(): InstallerInfoExtractor =
-        androidInstaller.getApkInfoExtractor()
+    override fun getApkInfoExtractor(): InstallerInfoExtractor = androidInstaller.getApkInfoExtractor()
 
-    override fun openApp(packageName: String): Boolean =
-        androidInstaller.openApp(packageName)
+    override fun openApp(packageName: String): Boolean = androidInstaller.openApp(packageName)
 
-    override fun openWithExternalInstaller(filePath: String) =
-        androidInstaller.openWithExternalInstaller(filePath)
-
-    // ==================== Overridden methods (may use Shizuku) ====================
+    override fun openWithExternalInstaller(filePath: String) = androidInstaller.openWithExternalInstaller(filePath)
 
     override suspend fun ensurePermissionsOrThrow(extOrMime: String) {
-        Logger.d(TAG) { "ensurePermissionsOrThrow() — extOrMime=$extOrMime, cachedType=$cachedInstallerType, status=${shizukuServiceManager.status.value}" }
+        Logger.d(TAG) {
+            "ensurePermissionsOrThrow() — extOrMime=$extOrMime, cachedType=$cachedInstallerType, status=${shizukuServiceManager.status.value}"
+        }
         if (shouldUseShizuku()) {
             Logger.d(TAG) { "Shizuku active — skipping unknown sources permission check" }
             return
@@ -105,7 +94,10 @@ class ShizukuInstallerWrapper(
         androidInstaller.ensurePermissionsOrThrow(extOrMime)
     }
 
-    override suspend fun install(filePath: String, extOrMime: String) {
+    override suspend fun install(
+        filePath: String,
+        extOrMime: String,
+    ) {
         Logger.d(TAG) { "install() called — filePath=$filePath, extOrMime=$extOrMime" }
         Logger.d(TAG) { "cachedInstallerType=$cachedInstallerType, shizukuStatus=${shizukuServiceManager.status.value}" }
 
@@ -114,18 +106,19 @@ class ShizukuInstallerWrapper(
             try {
                 val service = shizukuServiceManager.getService()
                 if (service != null) {
-                    // Run the blocking AIDL call on IO dispatcher to avoid ANR
-                    val result = withContext(Dispatchers.IO) {
-                        val file = java.io.File(filePath)
-                        val pfd = android.os.ParcelFileDescriptor.open(
-                            file,
-                            android.os.ParcelFileDescriptor.MODE_READ_ONLY
-                        )
-                        pfd.use {
-                            Logger.d(TAG) { "Got Shizuku service, calling installPackage($filePath, size=${file.length()})..." }
-                            service.installPackage(it, file.length())
+                    val result =
+                        withContext(Dispatchers.IO) {
+                            val file = java.io.File(filePath)
+                            val pfd =
+                                android.os.ParcelFileDescriptor.open(
+                                    file,
+                                    android.os.ParcelFileDescriptor.MODE_READ_ONLY,
+                                )
+                            pfd.use {
+                                Logger.d(TAG) { "Got Shizuku service, calling installPackage($filePath, size=${file.length()})..." }
+                                service.installPackage(it, file.length())
+                            }
                         }
-                    }
                     Logger.d(TAG) { "Shizuku installPackage() returned: $result" }
                     if (result == 0) {
                         Logger.d(TAG) { "Shizuku install SUCCEEDED for: $filePath" }
@@ -142,7 +135,6 @@ class ShizukuInstallerWrapper(
             Logger.d(TAG) { "Not using Shizuku (enabled=${isShizukuEnabled()}, status=${shizukuServiceManager.status.value})" }
         }
 
-        // Fallback: ensure permissions then use standard installer
         Logger.d(TAG) { "Using standard AndroidInstaller for: $filePath" }
         androidInstaller.ensurePermissionsOrThrow(extOrMime)
         androidInstaller.install(filePath, extOrMime)
@@ -154,10 +146,8 @@ class ShizukuInstallerWrapper(
 
         if (isShizukuEnabled() && shizukuServiceManager.status.value == ShizukuStatus.READY) {
             Logger.d(TAG) { "Attempting Shizuku uninstall..." }
-            // Fire on background thread — callers don't await result for standard uninstall either
             Thread {
                 try {
-                    // Bind/get service on this background thread (getService is suspend)
                     val service = runBlocking { shizukuServiceManager.getService() }
                     if (service != null) {
                         Logger.d(TAG) { "Got service, calling uninstallPackage($packageName)..." }
@@ -185,13 +175,7 @@ class ShizukuInstallerWrapper(
         androidInstaller.uninstall(packageName)
     }
 
-    // ==================== Internal helpers ====================
+    private suspend fun shouldUseShizuku(): Boolean = isShizukuEnabled() && shizukuServiceManager.status.value == ShizukuStatus.READY
 
-    private suspend fun shouldUseShizuku(): Boolean {
-        return isShizukuEnabled() && shizukuServiceManager.status.value == ShizukuStatus.READY
-    }
-
-    private fun isShizukuEnabled(): Boolean {
-        return cachedInstallerType == InstallerType.SHIZUKU
-    }
+    private fun isShizukuEnabled(): Boolean = cachedInstallerType == InstallerType.SHIZUKU
 }

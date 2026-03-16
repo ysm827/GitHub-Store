@@ -5,4 +5,5 @@ data class DeviceApp(
     val appName: String,
     val versionName: String?,
     val versionCode: Long,
+    val signingFingerprint: String?,
 )

@@ -37,7 +37,6 @@ class AppsRepositoryImpl(
     private val packageMonitor: PackageMonitor,
     private val themesRepository: ThemesRepository,
 ) : AppsRepository {
-
     private val json = Json { ignoreUnknownKeys = true }
 
     override suspend fun getApps(): Flow<List<InstalledApp>> = appsRepository.getAllInstalledApps()
@@ -89,13 +88,19 @@ class AppsRepositoryImpl(
             null
         }
 
-    override suspend fun getDeviceApps(): List<DeviceApp> =
-        packageMonitor.getAllInstalledApps()
+    override suspend fun getDeviceApps(): List<DeviceApp> = packageMonitor.getAllInstalledApps()
 
     override suspend fun getTrackedPackageNames(): Set<String> =
-        appsRepository.getAllInstalledApps().first().map { it.packageName }.toSet()
+        appsRepository
+            .getAllInstalledApps()
+            .first()
+            .map { it.packageName }
+            .toSet()
 
-    override suspend fun fetchRepoInfo(owner: String, repo: String): GithubRepoInfo? =
+    override suspend fun fetchRepoInfo(
+        owner: String,
+        repo: String,
+    ): GithubRepoInfo? =
         try {
             val repoModel =
                 httpClient
@@ -105,27 +110,27 @@ class AppsRepositoryImpl(
                         }
                     }.getOrThrow()
 
-            // Also fetch latest release tag
             val includePreReleases = themesRepository.getIncludePreReleases().first()
-            val latestTag = try {
-                val releases =
-                    httpClient
-                        .executeRequest<List<ReleaseNetwork>> {
-                            get("/repos/$owner/$repo/releases") {
-                                header(HttpHeaders.Accept, "application/vnd.github+json")
-                                parameter("per_page", 5)
-                            }
-                        }.getOrThrow()
+            val latestTag =
+                try {
+                    val releases =
+                        httpClient
+                            .executeRequest<List<ReleaseNetwork>> {
+                                get("/repos/$owner/$repo/releases") {
+                                    header(HttpHeaders.Accept, "application/vnd.github+json")
+                                    parameter("per_page", 5)
+                                }
+                            }.getOrThrow()
 
-                releases
-                    .asSequence()
-                    .filter { it.draft != true }
-                    .filter { includePreReleases || it.prerelease != true }
-                    .maxByOrNull { it.publishedAt ?: it.createdAt ?: "" }
-                    ?.tagName
-            } catch (_: Exception) {
-                null
-            }
+                    releases
+                        .asSequence()
+                        .filter { it.draft != true }
+                        .filter { includePreReleases || it.prerelease != true }
+                        .maxByOrNull { it.publishedAt ?: it.createdAt ?: "" }
+                        ?.tagName
+                } catch (_: Exception) {
+                    null
+                }
 
             GithubRepoInfo(
                 id = repoModel.id,
@@ -144,67 +149,75 @@ class AppsRepositoryImpl(
             null
         }
 
-    override suspend fun linkAppToRepo(deviceApp: DeviceApp, repoInfo: GithubRepoInfo) {
+    override suspend fun linkAppToRepo(
+        deviceApp: DeviceApp,
+        repoInfo: GithubRepoInfo,
+    ) {
         val now = Clock.System.now().toEpochMilliseconds()
 
-        val installedApp = InstalledApp(
-            packageName = deviceApp.packageName,
-            repoId = repoInfo.id,
-            repoName = repoInfo.name,
-            repoOwner = repoInfo.owner,
-            repoOwnerAvatarUrl = repoInfo.ownerAvatarUrl,
-            repoDescription = repoInfo.description,
-            primaryLanguage = repoInfo.language,
-            repoUrl = repoInfo.htmlUrl,
-            installedVersion = deviceApp.versionName ?: "unknown",
-            installedAssetName = null,
-            installedAssetUrl = null,
-            latestVersion = repoInfo.latestReleaseTag,
-            latestAssetName = null,
-            latestAssetUrl = null,
-            latestAssetSize = null,
-            appName = deviceApp.appName,
-            installSource = InstallSource.MANUAL,
-            installedAt = now,
-            lastCheckedAt = 0L,
-            lastUpdatedAt = now,
-            isUpdateAvailable = false,
-            updateCheckEnabled = true,
-            releaseNotes = null,
-            systemArchitecture = "",
-            fileExtension = "apk",
-            isPendingInstall = false,
-            installedVersionName = deviceApp.versionName,
-            installedVersionCode = deviceApp.versionCode,
-        )
+        val installedApp =
+            InstalledApp(
+                packageName = deviceApp.packageName,
+                repoId = repoInfo.id,
+                repoName = repoInfo.name,
+                repoOwner = repoInfo.owner,
+                repoOwnerAvatarUrl = repoInfo.ownerAvatarUrl,
+                repoDescription = repoInfo.description,
+                primaryLanguage = repoInfo.language,
+                repoUrl = repoInfo.htmlUrl,
+                installedVersion = deviceApp.versionName ?: "unknown",
+                installedAssetName = null,
+                installedAssetUrl = null,
+                latestVersion = repoInfo.latestReleaseTag,
+                latestAssetName = null,
+                latestAssetUrl = null,
+                latestAssetSize = null,
+                appName = deviceApp.appName,
+                installSource = InstallSource.MANUAL,
+                installedAt = now,
+                lastCheckedAt = 0L,
+                lastUpdatedAt = now,
+                isUpdateAvailable = false,
+                updateCheckEnabled = true,
+                releaseNotes = null,
+                systemArchitecture = "",
+                fileExtension = "apk",
+                isPendingInstall = false,
+                installedVersionName = deviceApp.versionName,
+                installedVersionCode = deviceApp.versionCode,
+                signingFingerprint = deviceApp.signingFingerprint,
+            )
 
         appsRepository.saveInstalledApp(installedApp)
     }
 
     override suspend fun exportApps(): String {
         val apps = appsRepository.getAllInstalledApps().first()
-        val exported = ExportedAppList(
-            version = 1,
-            exportedAt = Clock.System.now().toEpochMilliseconds(),
-            apps = apps.map { app ->
-                ExportedApp(
-                    packageName = app.packageName,
-                    repoOwner = app.repoOwner,
-                    repoName = app.repoName,
-                    repoUrl = app.repoUrl,
-                )
-            },
-        )
+        val exported =
+            ExportedAppList(
+                version = 1,
+                exportedAt = Clock.System.now().toEpochMilliseconds(),
+                apps =
+                    apps.map { app ->
+                        ExportedApp(
+                            packageName = app.packageName,
+                            repoOwner = app.repoOwner,
+                            repoName = app.repoName,
+                            repoUrl = app.repoUrl,
+                        )
+                    },
+            )
         return json.encodeToString(ExportedAppList.serializer(), exported)
     }
 
-    override suspend fun importApps(jsonString: String): ImportResult {
-        val exportedList = try {
-            json.decodeFromString(ExportedAppList.serializer(), jsonString)
-        } catch (e: Exception) {
-            logger.error("Failed to parse import JSON: ${e.message}")
-            return ImportResult(imported = 0, skipped = 0, failed = 1)
-        }
+    override suspend fun importApps(json: String): ImportResult {
+        val exportedList =
+            try {
+                this@AppsRepositoryImpl.json.decodeFromString(ExportedAppList.serializer(), json)
+            } catch (e: Exception) {
+                logger.error("Failed to parse import JSON: ${e.message}")
+                return ImportResult(imported = 0, skipped = 0, failed = 1)
+            }
 
         val trackedPackages = getTrackedPackageNames()
         var imported = 0
@@ -224,15 +237,16 @@ class AppsRepositoryImpl(
                     continue
                 }
 
-                // Try to get device app info if installed
                 val systemInfo = packageMonitor.getInstalledPackageInfo(exportedApp.packageName)
 
-                val deviceApp = DeviceApp(
-                    packageName = exportedApp.packageName,
-                    appName = exportedApp.repoName,
-                    versionName = systemInfo?.versionName,
-                    versionCode = systemInfo?.versionCode ?: 0L,
-                )
+                val deviceApp =
+                    DeviceApp(
+                        packageName = exportedApp.packageName,
+                        appName = exportedApp.repoName,
+                        versionName = systemInfo?.versionName,
+                        versionCode = systemInfo?.versionCode ?: 0L,
+                        signingFingerprint = systemInfo?.signingFingerprint,
+                    )
 
                 linkAppToRepo(deviceApp, repoInfo)
                 imported++

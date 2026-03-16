@@ -5,4 +5,5 @@ data class SystemPackageInfo(
     val versionName: String,
     val versionCode: Long,
     val isInstalled: Boolean,
+    val signingFingerprint: String?,
 )

@@ -3,12 +3,14 @@ package zed.rainxch.core.data.services
 import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
+import android.content.pm.PackageManager.GET_SIGNING_CERTIFICATES
 import android.os.Build
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import zed.rainxch.core.domain.model.DeviceApp
 import zed.rainxch.core.domain.model.SystemPackageInfo
 import zed.rainxch.core.domain.system.PackageMonitor
+import java.security.MessageDigest
 
 class AndroidPackageMonitor(
     context: Context,
@@ -20,12 +22,23 @@ class AndroidPackageMonitor(
     override suspend fun getInstalledPackageInfo(packageName: String): SystemPackageInfo? =
         withContext(Dispatchers.IO) {
             runCatching {
-                val packageInfo =
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                        packageManager.getPackageInfo(packageName, PackageManager.PackageInfoFlags.of(0L))
+                val flags =
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                        GET_SIGNING_CERTIFICATES.toLong()
                     } else {
                         @Suppress("DEPRECATION")
-                        packageManager.getPackageInfo(packageName, 0)
+                        PackageManager.GET_SIGNATURES.toLong()
+                    }
+
+                val packageInfo =
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        packageManager.getPackageInfo(
+                            packageName,
+                            PackageManager.PackageInfoFlags.of(flags),
+                        )
+                    } else {
+                        @Suppress("DEPRECATION")
+                        packageManager.getPackageInfo(packageName, flags.toInt())
                     }
 
                 val versionCode =
@@ -36,11 +49,37 @@ class AndroidPackageMonitor(
                         packageInfo.versionCode.toLong()
                     }
 
+                val signingFingerprint: String? =
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                        val sigInfo = packageInfo.signingInfo
+                        val certs =
+                            if (sigInfo?.hasMultipleSigners() == true) {
+                                sigInfo.apkContentsSigners
+                            } else {
+                                sigInfo?.signingCertificateHistory
+                            }
+                        certs?.firstOrNull()?.toByteArray()?.let { certBytes ->
+                            MessageDigest
+                                .getInstance("SHA-256")
+                                .digest(certBytes)
+                                .joinToString(":") { "%02X".format(it) }
+                        }
+                    } else {
+                        @Suppress("DEPRECATION")
+                        packageInfo.signatures?.firstOrNull()?.toByteArray()?.let { certBytes ->
+                            MessageDigest
+                                .getInstance("SHA-256")
+                                .digest(certBytes)
+                                .joinToString(":") { "%02X".format(it) }
+                        }
+                    }
+
                 SystemPackageInfo(
                     packageName = packageInfo.packageName,
                     versionName = packageInfo.versionName ?: "unknown",
                     versionCode = versionCode,
                     isInstalled = true,
+                    signingFingerprint = signingFingerprint,
                 )
             }.getOrNull()
         }
@@ -70,12 +109,10 @@ class AndroidPackageMonitor(
 
             packages
                 .filter { pkg ->
-                    // Exclude system apps (keep user-installed + updated system apps)
                     val isSystemApp = (pkg.applicationInfo?.flags ?: 0) and ApplicationInfo.FLAG_SYSTEM != 0
                     val isUpdatedSystem = (pkg.applicationInfo?.flags ?: 0) and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP != 0
                     !isSystemApp || isUpdatedSystem
-                }
-                .map { pkg ->
+                }.map { pkg ->
                     val versionCode =
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                             pkg.longVersionCode
@@ -89,8 +126,8 @@ class AndroidPackageMonitor(
                         appName = pkg.applicationInfo?.loadLabel(packageManager)?.toString() ?: pkg.packageName,
                         versionName = pkg.versionName,
                         versionCode = versionCode,
+                        signingFingerprint = null,
                     )
-                }
-                .sortedBy { it.appName.lowercase() }
+                }.sortedBy { it.appName.lowercase() }
         }
 }
