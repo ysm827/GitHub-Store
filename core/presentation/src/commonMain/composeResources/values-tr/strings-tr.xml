@@ -588,4 +588,5 @@
     <string name="clear_seen_history">Görüntüleme geçmişini temizle</string>
     <string name="clear_seen_history_description">Tüm görüntülenen depoları sıfırlayarak akışlarda tekrar görünmelerini sağlayın</string>
     <string name="seen_history_cleared">Görüntüleme geçmişi temizlendi</string>
+    <string name="seen_badge">Görüntülendi</string>
 </resources>

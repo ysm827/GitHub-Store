@@ -590,4 +590,5 @@
     <string name="clear_seen_history">দেখার ইতিহাস মুছুন</string>
     <string name="clear_seen_history_description">সমস্ত দেখা রিপোজিটরি রিসেট করুন যাতে সেগুলো ফিডে আবার দেখা যায়</string>
     <string name="seen_history_cleared">দেখার ইতিহাস মুছে ফেলা হয়েছে</string>
+    <string name="seen_badge">দেখা হয়েছে</string>
 </resources>

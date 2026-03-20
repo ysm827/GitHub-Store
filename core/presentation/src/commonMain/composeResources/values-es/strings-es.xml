@@ -551,4 +551,5 @@
     <string name="clear_seen_history">Borrar historial de vistos</string>
     <string name="clear_seen_history_description">Restablecer todos los repositorios vistos para que aparezcan de nuevo en las fuentes</string>
     <string name="seen_history_cleared">Historial de vistos borrado</string>
+    <string name="seen_badge">Visto</string>
 </resources>

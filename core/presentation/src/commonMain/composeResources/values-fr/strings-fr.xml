@@ -552,4 +552,5 @@
     <string name="clear_seen_history">Effacer l\'historique des consultations</string>
     <string name="clear_seen_history_description">Réinitialiser tous les dépôts consultés pour qu\'ils réapparaissent dans les flux</string>
     <string name="seen_history_cleared">Historique des consultations effacé</string>
+    <string name="seen_badge">Consulté</string>
 </resources>

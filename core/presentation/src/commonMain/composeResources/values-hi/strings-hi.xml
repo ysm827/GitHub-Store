@@ -590,4 +590,5 @@
     <string name="clear_seen_history">देखने का इतिहास साफ़ करें</string>
     <string name="clear_seen_history_description">सभी देखे गए रिपॉजिटरी रीसेट करें ताकि वे फ़ीड में फिर से दिखें</string>
     <string name="seen_history_cleared">देखने का इतिहास साफ़ किया गया</string>
+    <string name="seen_badge">देखा गया</string>
 </resources>

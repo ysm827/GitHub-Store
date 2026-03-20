@@ -590,4 +590,5 @@
     <string name="clear_seen_history">Cancella cronologia visualizzazioni</string>
     <string name="clear_seen_history_description">Reimposta tutti i repository visualizzati in modo che ricompaiano nei feed</string>
     <string name="seen_history_cleared">Cronologia visualizzazioni cancellata</string>
+    <string name="seen_badge">Visualizzato</string>
 </resources>

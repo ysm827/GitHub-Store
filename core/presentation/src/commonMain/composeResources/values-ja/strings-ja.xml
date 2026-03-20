@@ -552,4 +552,5 @@
     <string name="clear_seen_history">閲覧履歴をクリア</string>
     <string name="clear_seen_history_description">すべての閲覧済みリポジトリをリセットしてフィードに再表示します</string>
     <string name="seen_history_cleared">閲覧履歴をクリアしました</string>
+    <string name="seen_badge">閲覧済み</string>
 </resources>
