@@ -544,4 +544,6 @@
     <string name="select_language">Sélectionner la langue</string>
     <string name="update_package_mismatch">Incompatibilité de paquet : l\'APK est %1$s, mais l\'application installée est %2$s. Mise à jour bloquée.</string>
     <string name="update_signing_key_mismatch">Incompatibilité de clé de signature : la mise à jour a été signée par un développeur différent. Mise à jour bloquée.</string>
+    <string name="liquid_glass_option_title">Effet verre liquide</string>
+    <string name="liquid_glass_option_description">Améliorez l\'interface avec une apparence vitreuse et fluide</string>
 </resources>

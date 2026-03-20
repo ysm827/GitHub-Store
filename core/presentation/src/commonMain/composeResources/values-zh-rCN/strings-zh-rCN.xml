@@ -545,4 +545,6 @@
     <string name="select_language">选择语言</string>
     <string name="update_package_mismatch">包名不匹配：APK 为 %1$s，但已安装的应用为 %2$s。更新已阻止。</string>
     <string name="update_signing_key_mismatch">签名密钥不匹配：更新由不同的开发者签名。更新已阻止。</string>
+    <string name="liquid_glass_option_title">液态玻璃效果</string>
+    <string name="liquid_glass_option_description">以流畅的玻璃质感提升界面外观</string>
 </resources>

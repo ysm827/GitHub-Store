@@ -582,4 +582,6 @@
     <string name="select_language">भाषा चुनें</string>
     <string name="update_package_mismatch">पैकेज मेल नहीं खाता: APK %1$s है, लेकिन इंस्टॉल किया गया ऐप %2$s है। अपडेट ब्लॉक किया गया।</string>
     <string name="update_signing_key_mismatch">साइनिंग कुंजी मेल नहीं खाती: अपडेट किसी अन्य डेवलपर द्वारा साइन किया गया था। अपडेट ब्लॉक किया गया।</string>
+    <string name="liquid_glass_option_title">लिक्विड ग्लास इफ़ेक्ट</string>
+    <string name="liquid_glass_option_description">एक चिकने काँच जैसे रूप से इंटरफ़ेस को बेहतर बनाएं</string>
 </resources>

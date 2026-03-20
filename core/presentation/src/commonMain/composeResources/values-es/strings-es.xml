@@ -543,4 +543,6 @@
     <string name="select_language">Seleccionar idioma</string>
     <string name="update_package_mismatch">Paquete no coincide: el APK es %1$s, pero la aplicación instalada es %2$s. Actualización bloqueada.</string>
     <string name="update_signing_key_mismatch">Clave de firma no coincide: la actualización fue firmada por un desarrollador diferente. Actualización bloqueada.</string>
+    <string name="liquid_glass_option_title">Efecto de cristal líquido</string>
+    <string name="liquid_glass_option_description">Mejora la interfaz con una apariencia suave tipo cristal</string>
 </resources>

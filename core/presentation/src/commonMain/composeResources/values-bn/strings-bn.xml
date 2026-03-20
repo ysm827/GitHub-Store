@@ -582,4 +582,6 @@
     <string name="select_language">ভাষা নির্বাচন করুন</string>
     <string name="update_package_mismatch">প্যাকেজ অমিল: APK হলো %1$s, কিন্তু ইনস্টল করা অ্যাপ হলো %2$s। আপডেট ব্লক করা হয়েছে।</string>
     <string name="update_signing_key_mismatch">সাইনিং কী অমিল: আপডেটটি একজন ভিন্ন ডেভেলপার দ্বারা সাইন করা হয়েছে। আপডেট ব্লক করা হয়েছে।</string>
+    <string name="liquid_glass_option_title">লিকুইড গ্লাস ইফেক্ট</string>
+    <string name="liquid_glass_option_description">একটি মসৃণ কাচের মতো চেহারা দিয়ে ইন্টারফেস উন্নত করুন</string>
 </resources>

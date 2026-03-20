@@ -582,4 +582,6 @@
     <string name="select_language">Seleziona lingua</string>
     <string name="update_package_mismatch">Pacchetto non corrispondente: l\'APK è %1$s, ma l\'app installata è %2$s. Aggiornamento bloccato.</string>
     <string name="update_signing_key_mismatch">Chiave di firma non corrispondente: l\'aggiornamento è stato firmato da uno sviluppatore diverso. Aggiornamento bloccato.</string>
+    <string name="liquid_glass_option_title">Effetto vetro liquido</string>
+    <string name="liquid_glass_option_description">Migliora l\'interfaccia con un aspetto liscio simile al vetro</string>
 </resources>

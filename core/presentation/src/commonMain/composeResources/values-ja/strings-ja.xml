@@ -544,4 +544,6 @@
     <string name="select_language">言語を選択</string>
     <string name="update_package_mismatch">パッケージの不一致: APKは%1$sですが、インストール済みアプリは%2$sです。更新がブロックされました。</string>
     <string name="update_signing_key_mismatch">署名キーの不一致: 更新は別の開発者によって署名されています。更新がブロックされました。</string>
+    <string name="liquid_glass_option_title">リキッドグラスエフェクト</string>
+    <string name="liquid_glass_option_description">滑らかなガラスのような外観でインターフェースを向上させます</string>
 </resources>

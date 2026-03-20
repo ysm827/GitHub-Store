@@ -580,4 +580,6 @@
     <string name="select_language">Dil seçin</string>
     <string name="update_package_mismatch">Paket uyumsuzluğu: APK %1$s, ancak yüklü uygulama %2$s. Güncelleme engellendi.</string>
     <string name="update_signing_key_mismatch">İmza anahtarı uyumsuzluğu: güncelleme farklı bir geliştirici tarafından imzalanmış. Güncelleme engellendi.</string>
+    <string name="liquid_glass_option_title">Sıvı Cam Efekti</string>
+    <string name="liquid_glass_option_description">Arayüzü pürüzsüz cam benzeri bir görünümle geliştirin</string>
 </resources>

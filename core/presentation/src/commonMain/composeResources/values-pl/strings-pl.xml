@@ -546,4 +546,6 @@
     <string name="select_language">Wybierz język</string>
     <string name="update_package_mismatch">Niezgodność pakietu: APK to %1$s, ale zainstalowana aplikacja to %2$s. Aktualizacja zablokowana.</string>
     <string name="update_signing_key_mismatch">Niezgodność klucza podpisu: aktualizacja została podpisana przez innego programistę. Aktualizacja zablokowana.</string>
+    <string name="liquid_glass_option_title">Efekt płynnego szkła</string>
+    <string name="liquid_glass_option_description">Ulepsz interfejs o gładki, szklany wygląd</string>
 </resources>

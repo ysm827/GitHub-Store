@@ -546,4 +546,6 @@
     <string name="select_language">Выбрать язык</string>
     <string name="update_package_mismatch">Несоответствие пакета: APK — %1$s, но установленное приложение — %2$s. Обновление заблокировано.</string>
     <string name="update_signing_key_mismatch">Несоответствие ключа подписи: обновление подписано другим разработчиком. Обновление заблокировано.</string>
+    <string name="liquid_glass_option_title">Эффект жидкого стекла</string>
+    <string name="liquid_glass_option_description">Улучшите интерфейс с помощью гладкого стеклянного оформления</string>
 </resources>

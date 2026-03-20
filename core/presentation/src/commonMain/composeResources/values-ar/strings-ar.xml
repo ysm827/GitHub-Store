@@ -583,4 +583,6 @@
     <string name="select_language">اختر اللغة</string>
     <string name="update_package_mismatch">عدم تطابق الحزمة: ملف APK هو %1$s، لكن التطبيق المثبت هو %2$s. تم حظر التحديث.</string>
     <string name="update_signing_key_mismatch">عدم تطابق مفتاح التوقيع: تم توقيع التحديث بواسطة مطور مختلف. تم حظر التحديث.</string>
+    <string name="liquid_glass_option_title">تأثير الزجاج السائل</string>
+    <string name="liquid_glass_option_description">تحسين الواجهة بمظهر زجاجي ناعم</string>
 </resources>
