@@ -267,6 +267,28 @@ jobs:
           ls -lh "$OUTPUT" "$OUTPUT.zsync"
         shell: bash
 
+      - name: Patch deb scripts for headless/WSL compatibility
+        run: |
+          set -euo pipefail
+          for deb in composeApp/build/compose/binaries/main/deb/*.deb; do
+            [ -f "$deb" ] || continue
+            echo "Patching: $deb"
+            tmpdir=$(mktemp -d)
+            dpkg-deb -R "$deb" "$tmpdir"
+
+            for script in "$tmpdir/DEBIAN/postinst" "$tmpdir/DEBIAN/prerm" "$tmpdir/DEBIAN/postrm"; do
+              [ -f "$script" ] || continue
+              # Make xdg-desktop-menu / xdg-icon-resource / xdg-mime calls non-fatal
+              # so install/remove succeeds in headless environments (WSL, containers, servers)
+              sed -i '/xdg-desktop-menu\|xdg-icon-resource\|xdg-mime/{/|| true$/!s/$/ || true/}' "$script"
+            done
+
+            dpkg-deb -b "$tmpdir" "$deb"
+            rm -rf "$tmpdir"
+            echo "Patched successfully: $deb"
+          done
+        shell: bash
+
       - name: Upload Linux installers
         uses: actions/upload-artifact@v4
         with:
