@@ -24,6 +24,7 @@ data class ProfileState(
     val isProxyPasswordVisible: Boolean = false,
     val autoDetectClipboardLinks: Boolean = true,
     val cacheSize: String = "",
+    val isClearDownloadsDialogVisible: Boolean = false,
     val installerType: InstallerType = InstallerType.DEFAULT,
     val shizukuAvailability: ShizukuAvailability = ShizukuAvailability.UNAVAILABLE,
     val autoUpdateEnabled: Boolean = false,

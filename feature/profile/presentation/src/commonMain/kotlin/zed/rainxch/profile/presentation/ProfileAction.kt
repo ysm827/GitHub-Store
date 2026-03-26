@@ -36,6 +36,10 @@ sealed interface ProfileAction {
 
     data object OnClearCacheClick : ProfileAction
 
+    data object OnClearDownloadsConfirm : ProfileAction
+
+    data object OnClearDownloadsDismiss : ProfileAction
+
     data class OnFontThemeSelected(
         val fontTheme: FontTheme,
     ) : ProfileAction

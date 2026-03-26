@@ -13,10 +13,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Storage
-import androidx.compose.material3.Button
+import androidx.compose.material.icons.outlined.DeleteOutline
+import androidx.compose.material.icons.outlined.Inventory2
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -51,12 +52,12 @@ fun LazyListScope.othersSection(
                 modifier =
                     Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Icon(
-                    imageVector = Icons.Outlined.Storage,
+                    imageVector = Icons.Outlined.Inventory2,
                     contentDescription = null,
                     modifier =
                         Modifier
@@ -72,33 +73,40 @@ fun LazyListScope.othersSection(
                     horizontalAlignment = Alignment.Start,
                 ) {
                     Text(
-                        text = stringResource(Res.string.clear_cache),
+                        text = stringResource(Res.string.downloaded_packages),
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurface,
                     )
 
                     Text(
-                        text = "${stringResource(Res.string.current_size)} ${state.cacheSize}",
-                        style = MaterialTheme.typography.titleSmall,
+                        text = stringResource(Res.string.downloaded_packages_description),
+                        style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+
+                    Text(
+                        text = "${stringResource(Res.string.current_size)} ${state.cacheSize}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = FontWeight.SemiBold,
                     )
                 }
 
-                Button(
+                FilledTonalButton(
                     onClick = {
                         onAction(ProfileAction.OnClearCacheClick)
                     },
                     shape = RoundedCornerShape(12.dp),
                     colors =
-                        ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                            contentColor = MaterialTheme.colorScheme.onSurface,
+                        ButtonDefaults.filledTonalButtonColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer,
+                            contentColor = MaterialTheme.colorScheme.onErrorContainer,
                         ),
                 ) {
-                    Text(
-                        text = stringResource(Res.string.clear),
-                        style = MaterialTheme.typography.titleMediumEmphasized,
-                        fontWeight = FontWeight.Bold,
+                    Icon(
+                        imageVector = Icons.Outlined.DeleteOutline,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
                     )
                 }
             }

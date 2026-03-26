@@ -1,5 +1,6 @@
 package zed.rainxch.core.presentation.components
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.staggeredgrid.LazyStaggeredGridState
 import androidx.compose.runtime.Composable
@@ -10,22 +11,21 @@ actual fun ScrollbarContainer(
     listState: LazyListState,
     enabled: Boolean,
     modifier: Modifier,
-    content: `@Composable` () -> Unit,
+    content: @Composable () -> Unit,
 ) {
     Box(modifier = modifier) {
         content()
     }
 }
 
-`@Composable`
+@Composable
 actual fun ScrollbarContainer(
     gridState: LazyStaggeredGridState,
     enabled: Boolean,
     modifier: Modifier,
-    content: `@Composable` () -> Unit,
+    content: @Composable () -> Unit,
 ) {
     Box(modifier = modifier) {
         content()
     }
-}
 }

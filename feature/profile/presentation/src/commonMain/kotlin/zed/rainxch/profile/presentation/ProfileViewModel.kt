@@ -300,6 +300,11 @@ class ProfileViewModel(
             }
 
             ProfileAction.OnClearCacheClick -> {
+                _state.update { it.copy(isClearDownloadsDialogVisible = true) }
+            }
+
+            ProfileAction.OnClearDownloadsConfirm -> {
+                _state.update { it.copy(isClearDownloadsDialogVisible = false) }
                 viewModelScope.launch {
                     runCatching {
                         profileRepository.clearCache()
@@ -309,11 +314,15 @@ class ProfileViewModel(
                     }.onFailure { error ->
                         _events.send(
                             ProfileEvent.OnCacheClearError(
-                                error.message ?: "Failed to clear cache",
+                                error.message ?: "Failed to clear downloads",
                             ),
                         )
                     }
                 }
+            }
+
+            ProfileAction.OnClearDownloadsDismiss -> {
+                _state.update { it.copy(isClearDownloadsDialogVisible = false) }
             }
 
             is ProfileAction.OnThemeColorSelected -> {

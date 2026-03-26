@@ -32,6 +32,7 @@ import zed.rainxch.core.presentation.locals.LocalBottomNavigationLiquid
 import zed.rainxch.core.presentation.theme.GithubStoreTheme
 import zed.rainxch.core.presentation.utils.ObserveAsEvents
 import zed.rainxch.githubstore.core.presentation.res.*
+import zed.rainxch.profile.presentation.components.ClearDownloadsDialog
 import zed.rainxch.profile.presentation.components.LogoutDialog
 import zed.rainxch.profile.presentation.components.sections.about
 import zed.rainxch.profile.presentation.components.sections.logout
@@ -83,7 +84,7 @@ fun ProfileRoot(
 
             ProfileEvent.OnCacheCleared -> {
                 coroutineScope.launch {
-                    snackbarState.showSnackbar(getString(Res.string.cache_cleared))
+                    snackbarState.showSnackbar(getString(Res.string.downloads_cleared))
                 }
             }
 
@@ -144,6 +145,18 @@ fun ProfileRoot(
             },
             onLogout = {
                 viewModel.onAction(ProfileAction.OnLogoutConfirmClick)
+            },
+        )
+    }
+
+    if (state.isClearDownloadsDialogVisible) {
+        ClearDownloadsDialog(
+            cacheSize = state.cacheSize,
+            onDismissRequest = {
+                viewModel.onAction(ProfileAction.OnClearDownloadsDismiss)
+            },
+            onConfirm = {
+                viewModel.onAction(ProfileAction.OnClearDownloadsConfirm)
             },
         )
     }

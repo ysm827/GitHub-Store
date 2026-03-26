@@ -486,8 +486,15 @@
     <string name="no_github_link_in_clipboard">No GitHub link found in clipboard</string>
 
     <string name="storage">Storage</string>
-    <string name="clear_cache">Clear cache</string>
+    <string name="downloaded_packages">Downloaded Packages</string>
+    <string name="downloaded_packages_description">APKs and installers from GitHub releases</string>
     <string name="current_size">Current size:</string>
+    <string name="delete_all">Delete All</string>
+    <string name="delete_downloads_confirmation_title">Delete all downloads?</string>
+    <string name="delete_downloads_confirmation_message">This will permanently remove all downloaded APKs and installers (%1$s). You can re-download them anytime.</string>
+    <string name="downloads_cleared">All downloaded packages have been deleted.</string>
+    <!-- Legacy keys kept for compatibility -->
+    <string name="clear_cache">Clear cache</string>
     <string name="clear">Clear</string>
     <string name="cache_cleared">The cache is gradually cleared.</string>
 
