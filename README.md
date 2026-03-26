@@ -156,7 +156,10 @@ GitHub® is a registered trademark of GitHub, Inc.
     - Home sections for “Trending”, “Hot Release”, and “Most Popular” projects with time‑based filters.
     - Only repos with valid installable assets are shown.
     - Platform‑aware topic scoring so Android/desktop users see relevant apps first.
-    - Overhauled search with improved relevance ranking and performance.
+    - Search with filters for platform, programming language, and sort order.
+    - Search history — recent queries are saved locally and shown as suggestions.
+    - Clipboard link detection — automatically detects GitHub URLs from your clipboard and offers quick navigation.
+    - Hide seen repos — optionally filter out repositories you’ve already viewed from discovery feeds.
 
 - **Release browser & installs**
     - Release picker to browse and install from any release, not just the latest.
@@ -170,19 +173,36 @@ GitHub® is a registered trademark of GitHub, Inc.
     - Rendered README content (“About this app”).
     - Release notes with Markdown formatting for any selected release.
     - List of installers with platform labels and file sizes.
-    - Deep linking support — open repository details directly via URL.
+    - Deep linking support — open repository details via `githubstore://`, `github.com`, or `github-store.org` URLs.
     - Developer profile screen to explore a developer’s repositories and activity.
 
 - **App management**
     - Open, uninstall, and downgrade installed apps directly from GitHub Store.
+    - **Link apps** — connect any app already installed on your device to its GitHub repository so GitHub Store can track updates for it. A guided flow lets you pick the app, enter the repo URL, and select the matching release asset.
     - Android: APK architecture matching (armv7/armv8), package monitoring, and update tracking.
+    - Android: Shizuku silent installation — install and update apps without prompts (requires [Shizuku](https://shizuku.rikka.app/) running with ADB or root).
+    - Android: Background update checking — configurable periodic checks (3h / 6h / 12h / 24h) with notifications when updates are found.
+    - Android: Auto‑update — silently installs available updates via Shizuku when enabled.
     - Desktop (Windows/macOS/Linux): downloads installers to the user’s Downloads folder and opens them with the default handler.
 
-- **Starred repositories**
-    - Save and browse your starred GitHub repositories from within the app.
+- **Collections**
+    - **Starred** — browse your GitHub starred repositories from within the app.
+    - **Favourites** — save repositories locally for quick access, no GitHub login required.
+    - **Recently viewed** — automatically tracks repositories you’ve opened for easy return.
+
+- **Tweaks**
+    - Dedicated settings screen accessible from the bottom navigation bar.
+    - **Appearance** — theme color picker (Ocean, Mint, Rose, Purple, Indigo, Peach, Dynamic), light/dark/system mode, AMOLED black theme, system font toggle, liquid glass UI effect, scrollbar toggle (desktop).
+    - **Network** — proxy configuration with HTTP/SOCKS support and optional authentication.
+    - **Installation** (Android) — choose between default installer and Shizuku silent install, with real‑time Shizuku status indicator.
+    - **Updates** (Android) — update check interval, pre‑release inclusion, auto‑update toggle.
+    - **Storage** — view and clear downloaded package cache.
+
+- **Localization**
+    - Available in 13 languages: English, Arabic, Bengali, Chinese (Simplified), Spanish, French, Hindi, Italian, Japanese, Korean, Polish, Russian, and Turkish.
 
 - **Network & performance**
-    - Dynamic proxy support for configurable network routing.
+    - Dynamic proxy support (HTTP, SOCKS, System) for configurable network routing.
     - Enhanced caching system for faster loading and reduced API usage.
 ---
 
@@ -226,9 +246,18 @@ automatically—no manual submission required.
 
 - **Always up to date**
   Installs default to the latest published release, with the option to browse and install from
-  any previous release via the release picker.
+  any previous release via the release picker. Background update checks notify you when new versions drop.
 
-- **Open source & extensible**  
+- **Hands‑free updates (Android)**
+  Enable Shizuku silent install + auto‑update and never touch an install prompt again.
+
+- **Your library, your way**
+  Star, favourite, and track recently viewed repos — all synced locally with no account required for favourites and history.
+
+- **Fully customizable**
+  Theme colors, AMOLED mode, fonts, liquid glass effects, proxy settings, and more — all in one Tweaks screen.
+
+- **Open source & extensible**
   Written in KMP with a clear separation between networking, domain logic, and UI—easy to fork,
   extend, or adapt.
 
