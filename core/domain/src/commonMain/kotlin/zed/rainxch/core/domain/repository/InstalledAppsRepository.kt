@@ -44,5 +44,10 @@ interface InstalledAppsRepository {
         isPending: Boolean,
     )
 
+    suspend fun setIncludePreReleases(
+        packageName: String,
+        enabled: Boolean,
+    )
+
     suspend fun <R> executeInTransaction(block: suspend () -> R): R
 }

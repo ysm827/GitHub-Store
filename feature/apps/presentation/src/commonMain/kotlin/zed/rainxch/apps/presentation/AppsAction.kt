@@ -55,6 +55,9 @@ sealed interface AppsAction {
     data class OnLinkAssetSelected(val asset: GithubAssetUi) : AppsAction
     data object OnBackToEnterUrl : AppsAction
 
+    // Per-app pre-release toggle
+    data class OnTogglePreReleases(val packageName: String, val enabled: Boolean) : AppsAction
+
     // Export/Import
     data object OnExportApps : AppsAction
     data object OnImportApps : AppsAction

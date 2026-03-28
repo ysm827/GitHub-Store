@@ -50,6 +50,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
@@ -108,6 +109,7 @@ import zed.rainxch.githubstore.core.presentation.res.last_checked_minutes_ago
 import zed.rainxch.githubstore.core.presentation.res.no_apps_found
 import zed.rainxch.githubstore.core.presentation.res.open
 import zed.rainxch.githubstore.core.presentation.res.pending_install
+import zed.rainxch.githubstore.core.presentation.res.pre_release_badge
 import zed.rainxch.githubstore.core.presentation.res.search_your_apps
 import zed.rainxch.githubstore.core.presentation.res.uninstall
 import zed.rainxch.githubstore.core.presentation.res.update
@@ -448,6 +450,9 @@ fun AppsScreen(
                                         onCancelClick = { onAction(AppsAction.OnCancelUpdate(appItem.installedApp.packageName)) },
                                         onUninstallClick = { onAction(AppsAction.OnUninstallApp(appItem.installedApp)) },
                                         onRepoClick = { onAction(AppsAction.OnNavigateToRepo(appItem.installedApp.repoId)) },
+                                        onTogglePreReleases = { enabled ->
+                                            onAction(AppsAction.OnTogglePreReleases(appItem.installedApp.packageName, enabled))
+                                        },
                                         modifier =
                                             Modifier
                                                 .then(
@@ -538,6 +543,7 @@ fun AppItemCard(
     onCancelClick: () -> Unit,
     onUninstallClick: () -> Unit,
     onRepoClick: () -> Unit,
+    onTogglePreReleases: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val app = appItem.installedApp
@@ -625,7 +631,25 @@ fun AppItemCard(
                 )
             }
 
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(8.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = stringResource(Res.string.pre_release_badge),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Switch(
+                    checked = app.includePreReleases,
+                    onCheckedChange = onTogglePreReleases,
+                )
+            }
+
+            Spacer(Modifier.height(4.dp))
 
             when (val state = appItem.updateState) {
                 is UpdateState.Downloading -> {

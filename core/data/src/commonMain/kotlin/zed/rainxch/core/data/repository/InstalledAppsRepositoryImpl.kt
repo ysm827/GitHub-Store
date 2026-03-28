@@ -23,7 +23,6 @@ import zed.rainxch.core.domain.model.GithubRelease
 import zed.rainxch.core.domain.model.InstallSource
 import zed.rainxch.core.domain.model.InstalledApp
 import zed.rainxch.core.domain.repository.InstalledAppsRepository
-import zed.rainxch.core.domain.repository.TweaksRepository
 import zed.rainxch.core.domain.system.Installer
 
 class InstalledAppsRepositoryImpl(
@@ -32,7 +31,6 @@ class InstalledAppsRepositoryImpl(
     private val historyDao: UpdateHistoryDao,
     private val installer: Installer,
     private val httpClient: HttpClient,
-    private val tweaksRepository: TweaksRepository,
 ) : InstalledAppsRepository {
     override suspend fun <R> executeInTransaction(block: suspend () -> R): R =
         database.useWriterConnection { transactor ->
@@ -76,10 +74,9 @@ class InstalledAppsRepositoryImpl(
     private suspend fun fetchLatestPublishedRelease(
         owner: String,
         repo: String,
+        includePreReleases: Boolean,
     ): GithubRelease? {
         return try {
-            val includePreReleases = tweaksRepository.getIncludePreReleases().first()
-
             val releases =
                 httpClient
                     .executeRequest<List<ReleaseNetwork>> {
@@ -112,6 +109,7 @@ class InstalledAppsRepositoryImpl(
                 fetchLatestPublishedRelease(
                     owner = app.repoOwner,
                     repo = app.repoName,
+                    includePreReleases = app.includePreReleases,
                 )
 
             if (latestRelease != null) {
@@ -239,6 +237,13 @@ class InstalledAppsRepositoryImpl(
     ) {
         val app = installedAppsDao.getAppByPackage(packageName) ?: return
         installedAppsDao.updateApp(app.copy(isPendingInstall = isPending))
+    }
+
+    override suspend fun setIncludePreReleases(
+        packageName: String,
+        enabled: Boolean,
+    ) {
+        installedAppsDao.updateIncludePreReleases(packageName, enabled)
     }
 
     private fun normalizeVersion(version: String): String = version.removePrefix("v").removePrefix("V").trim()

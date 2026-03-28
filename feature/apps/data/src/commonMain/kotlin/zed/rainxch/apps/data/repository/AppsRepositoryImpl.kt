@@ -62,10 +62,9 @@ class AppsRepositoryImpl(
     override suspend fun getLatestRelease(
         owner: String,
         repo: String,
+        includePreReleases: Boolean,
     ): GithubRelease? =
         try {
-            val includePreReleases = tweaksRepository.getIncludePreReleases().first()
-
             val releases =
                 httpClient
                     .executeRequest<List<ReleaseNetwork>> {
@@ -154,6 +153,7 @@ class AppsRepositoryImpl(
         repoInfo: GithubRepoInfo,
     ) {
         val now = Clock.System.now().toEpochMilliseconds()
+        val globalPreRelease = tweaksRepository.getIncludePreReleases().first()
 
         val installedApp =
             InstalledApp(
@@ -186,6 +186,7 @@ class AppsRepositoryImpl(
                 installedVersionName = deviceApp.versionName,
                 installedVersionCode = deviceApp.versionCode,
                 signingFingerprint = deviceApp.signingFingerprint,
+                includePreReleases = globalPreRelease,
             )
 
         appsRepository.saveInstalledApp(installedApp)

@@ -620,4 +620,5 @@
 
     <string name="bottom_nav_profile_tweaks">Modifiche</string>
     <string name="tweaks_title">Modifiche</string>
+    <string name="pre_releases">Pre-release</string>
 </resources>

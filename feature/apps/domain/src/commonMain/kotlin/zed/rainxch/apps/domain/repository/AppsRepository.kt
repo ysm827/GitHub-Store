@@ -18,6 +18,7 @@ interface AppsRepository {
     suspend fun getLatestRelease(
         owner: String,
         repo: String,
+        includePreReleases: Boolean = false,
     ): GithubRelease?
 
     suspend fun getDeviceApps(): List<DeviceApp>

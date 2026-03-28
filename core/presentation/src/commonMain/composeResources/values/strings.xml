@@ -623,4 +623,7 @@
     <string name="remove_search_history_item">Remove</string>
 
     <string name="tweaks_title">Tweaks</string>
+
+    <!-- Per-app pre-release toggle -->
+    <string name="pre_releases">Pre-releases</string>
 </resources>

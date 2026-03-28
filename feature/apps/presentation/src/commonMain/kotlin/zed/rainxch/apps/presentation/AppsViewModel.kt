@@ -302,6 +302,10 @@ class AppsViewModel(
                 }
             }
 
+            is AppsAction.OnTogglePreReleases -> {
+                togglePreReleases(action.packageName, action.enabled)
+            }
+
             AppsAction.OnExportApps -> {
                 exportApps()
             }
@@ -345,6 +349,17 @@ class AppsViewModel(
                 }.sortedBy { it.installedApp.isUpdateAvailable }
                 .toImmutableList()
         }
+
+    private fun togglePreReleases(packageName: String, enabled: Boolean) {
+        viewModelScope.launch {
+            try {
+                installedAppsRepository.setIncludePreReleases(packageName, enabled)
+                installedAppsRepository.checkForUpdates(packageName)
+            } catch (e: Exception) {
+                logger.error("Failed to toggle pre-releases for $packageName: ${e.message}")
+            }
+        }
+    }
 
     private fun uninstallApp(app: InstalledAppUi) {
         viewModelScope.launch {
@@ -410,6 +425,7 @@ class AppsViewModel(
                             appsRepository.getLatestRelease(
                                 owner = app.repoOwner,
                                 repo = app.repoName,
+                                includePreReleases = app.includePreReleases,
                             )
                         } catch (e: Exception) {
                             logger.error("Failed to fetch latest release: ${e.message}")

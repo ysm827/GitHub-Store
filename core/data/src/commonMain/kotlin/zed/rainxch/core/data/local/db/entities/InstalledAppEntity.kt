@@ -37,4 +37,5 @@ data class InstalledAppEntity(
     val installedVersionCode: Long = 0L,
     val latestVersionName: String? = null,
     val latestVersionCode: Long? = null,
+    val includePreReleases: Boolean = false,
 )

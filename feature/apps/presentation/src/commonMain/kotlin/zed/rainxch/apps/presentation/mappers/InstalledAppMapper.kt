@@ -36,6 +36,7 @@ fun InstalledApp.toUi(): InstalledAppUi =
         packageName = packageName,
         appName = appName,
         signingFingerprint = signingFingerprint,
+        includePreReleases = includePreReleases,
     )
 
 fun InstalledAppUi.toDomain(): InstalledApp =
@@ -71,4 +72,5 @@ fun InstalledAppUi.toDomain(): InstalledApp =
         packageName = packageName,
         appName = appName,
         signingFingerprint = signingFingerprint,
+        includePreReleases = includePreReleases,
     )

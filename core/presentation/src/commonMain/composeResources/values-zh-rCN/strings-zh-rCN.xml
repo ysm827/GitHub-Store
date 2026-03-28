@@ -584,4 +584,5 @@
 
     <string name="bottom_nav_profile_tweaks">调整</string>
     <string name="tweaks_title">调整</string>
+    <string name="pre_releases">预发布版本</string>
 </resources>
