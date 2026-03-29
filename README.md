@@ -64,6 +64,24 @@ Built with Kotlin Multiplatform and Compose Multiplatform for Android and Deskto
 
 </div>
 
+---
+
+<div align="center">
+
+### 🩵 What's next for GitHub Store
+
+The next major version of GitHub Store will be fully rewritten with
+**[RikkaUI](https://rikkaui.dev)** — a shadcn/ui-inspired component library
+for Compose Multiplatform I'm building in parallel.
+
+Zero Material3. Full ownership. Beautiful by default.
+
+**[Follow the progress →](https://rikkaui.dev)**
+
+</div>
+
+---
+
 <div align="center"><a href="https://github.com/Safouene1/support-palestine-banner/blob/master/Markdown-pages/Support.md"><img src="https://raw.githubusercontent.com/Safouene1/support-palestine-banner/master/banner-project.svg" alt="Support Palestine" style="width: 100%;"></a></div>
 
 > [!CAUTION]
