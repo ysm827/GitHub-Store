@@ -369,13 +369,13 @@ class AppsViewModel(
                     .thenBy { it.installedApp.appName.lowercase() }
 
             AppSortRule.RecentlyUpdated ->
-                updatesFirst
-                    .thenByDescending { it.installedApp.lastUpdatedAt }
+                compareByDescending<AppItem> { it.installedApp.lastUpdatedAt }
+                    .thenByDescending { it.installedApp.isUpdateAvailable }
                     .thenBy { it.installedApp.appName.lowercase() }
 
             AppSortRule.Name ->
-                updatesFirst
-                    .thenBy { it.installedApp.appName.lowercase() }
+                compareBy<AppItem> { it.installedApp.appName.lowercase() }
+                    .thenByDescending { it.installedApp.isUpdateAvailable }
         }
     }
 
