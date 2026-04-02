@@ -52,7 +52,8 @@ interface InstalledAppDao {
         releaseNotes = :releaseNotes,
         lastCheckedAt = :timestamp,
         latestVersionName = :latestVersionName,
-        latestVersionCode = :latestVersionCode
+        latestVersionCode = :latestVersionCode,
+        latestReleasePublishedAt = :latestReleasePublishedAt
     WHERE packageName = :packageName
 """,
     )
@@ -67,6 +68,7 @@ interface InstalledAppDao {
         timestamp: Long,
         latestVersionName: String?,
         latestVersionCode: Long?,
+        latestReleasePublishedAt: String?,
     )
 
     @Query("UPDATE installed_apps SET includePreReleases = :enabled WHERE packageName = :packageName")

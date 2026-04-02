@@ -10,6 +10,7 @@ import zed.rainxch.core.data.local.db.migrations.MIGRATION_4_5
 import zed.rainxch.core.data.local.db.migrations.MIGRATION_5_6
 import zed.rainxch.core.data.local.db.migrations.MIGRATION_6_7
 import zed.rainxch.core.data.local.db.migrations.MIGRATION_7_8
+import zed.rainxch.core.data.local.db.migrations.MIGRATION_8_9
 
 fun initDatabase(context: Context): AppDatabase {
     val appContext = context.applicationContext
@@ -27,5 +28,6 @@ fun initDatabase(context: Context): AppDatabase {
             MIGRATION_5_6,
             MIGRATION_6_7,
             MIGRATION_7_8,
+            MIGRATION_8_9,
         ).build()
 }

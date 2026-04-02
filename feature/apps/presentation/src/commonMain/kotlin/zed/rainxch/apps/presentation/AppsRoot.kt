@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Sort
 import androidx.compose.material.icons.filled.Update
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.FileDownload
@@ -36,6 +37,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -50,7 +52,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
@@ -67,17 +68,24 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.skydoves.landscapist.coil3.CoilImage
 import io.github.fletchmckee.liquid.liquefiable
+import kotlinx.datetime.Instant
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
+import zed.rainxch.apps.presentation.components.InstalledAppIcon
 import zed.rainxch.apps.presentation.components.LinkAppBottomSheet
 import zed.rainxch.apps.presentation.model.AppItem
+import zed.rainxch.apps.presentation.model.AppSortRule
 import zed.rainxch.apps.presentation.model.UpdateAllProgress
 import zed.rainxch.apps.presentation.model.UpdateState
 import zed.rainxch.core.presentation.components.ExpressiveCard
@@ -111,6 +119,10 @@ import zed.rainxch.githubstore.core.presentation.res.open
 import zed.rainxch.githubstore.core.presentation.res.pending_install
 import zed.rainxch.githubstore.core.presentation.res.pre_release_badge
 import zed.rainxch.githubstore.core.presentation.res.search_your_apps
+import zed.rainxch.githubstore.core.presentation.res.sort_apps
+import zed.rainxch.githubstore.core.presentation.res.sort_name
+import zed.rainxch.githubstore.core.presentation.res.sort_recently_updated
+import zed.rainxch.githubstore.core.presentation.res.sort_updates_first
 import zed.rainxch.githubstore.core.presentation.res.uninstall
 import zed.rainxch.githubstore.core.presentation.res.update
 import zed.rainxch.githubstore.core.presentation.res.update_all
@@ -179,6 +191,7 @@ fun AppsScreen(
     val liquidState = LocalBottomNavigationLiquid.current
     val bottomNavHeight = LocalBottomNavigationHeight.current
     var showOverflowMenu by remember { mutableStateOf(false) }
+    var showSortMenu by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -192,6 +205,41 @@ fun AppsScreen(
                     )
                 },
                 actions = {
+                    Box {
+                        IconButton(onClick = { showSortMenu = true }) {
+                            Icon(
+                                imageVector = Icons.Default.Sort,
+                                contentDescription = stringResource(Res.string.sort_apps),
+                            )
+                        }
+                        DropdownMenu(
+                            expanded = showSortMenu,
+                            onDismissRequest = { showSortMenu = false },
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(Res.string.sort_updates_first)) },
+                                onClick = {
+                                    showSortMenu = false
+                                    onAction(AppsAction.OnSortRuleSelected(AppSortRule.UpdatesFirst))
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(Res.string.sort_recently_updated)) },
+                                onClick = {
+                                    showSortMenu = false
+                                    onAction(AppsAction.OnSortRuleSelected(AppSortRule.RecentlyUpdated))
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(Res.string.sort_name)) },
+                                onClick = {
+                                    showSortMenu = false
+                                    onAction(AppsAction.OnSortRuleSelected(AppSortRule.Name))
+                                },
+                            )
+                        }
+                    }
+
                     IconButton(
                         onClick = { onAction(AppsAction.OnCheckAllForUpdates) },
                     ) {
@@ -547,6 +595,11 @@ fun AppItemCard(
     modifier: Modifier = Modifier,
 ) {
     val app = appItem.installedApp
+    val isBusy =
+        app.isPendingInstall ||
+            appItem.updateState is UpdateState.Downloading ||
+            appItem.updateState is UpdateState.Installing ||
+            appItem.updateState is UpdateState.CheckingUpdate
 
     ExpressiveCard(
         onClick = onRepoClick,
@@ -561,21 +614,15 @@ fun AppItemCard(
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                CoilImage(
-                    imageModel = { app.repoOwnerAvatarUrl },
+                InstalledAppIcon(
+                    packageName = app.packageName,
+                    appName = app.appName,
                     modifier =
                         Modifier
                             .size(64.dp)
-                            .clip(CircleShape),
-                    loading = {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            CircularWavyProgressIndicator()
-                        }
-                    },
+                            .clip(RoundedCornerShape(18.dp)),
                 )
 
                 Column(modifier = Modifier.weight(1f)) {
@@ -586,11 +633,31 @@ fun AppItemCard(
                         fontWeight = FontWeight.Bold,
                     )
 
-                    Text(
-                        text = app.repoOwner,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        CoilImage(
+                            imageModel = { app.repoOwnerAvatarUrl },
+                            modifier =
+                                Modifier
+                                    .size(18.dp)
+                                    .clip(CircleShape),
+                            loading = {
+                                Box(
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    CircularWavyProgressIndicator()
+                                }
+                            },
+                        )
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            text = app.repoOwner,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
 
                     when {
                         app.isPendingInstall -> {
@@ -603,7 +670,13 @@ fun AppItemCard(
 
                         app.isUpdateAvailable -> {
                             Text(
-                                text = "${app.installedVersion} → ${app.latestVersion}",
+                                text =
+                                    buildVersionLabel(
+                                        installedVersion = app.installedVersion,
+                                        latestVersion = app.latestVersion,
+                                        latestReleasePublishedAt = app.latestReleasePublishedAt,
+                                        lastUpdatedAt = app.lastUpdatedAt,
+                                    ),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.primary,
                             )
@@ -611,7 +684,13 @@ fun AppItemCard(
 
                         else -> {
                             Text(
-                                text = app.installedVersion,
+                                text =
+                                    buildVersionLabel(
+                                        installedVersion = app.installedVersion,
+                                        latestVersion = null,
+                                        latestReleasePublishedAt = null,
+                                        lastUpdatedAt = app.lastUpdatedAt,
+                                    ),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -638,18 +717,24 @@ fun AppItemCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                val preReleaseString = stringResource(Res.string.pre_release_badge)
                 Text(
-                    text = stringResource(Res.string.pre_release_badge),
+                    text = preReleaseString,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                Switch(
+                Checkbox(
                     checked = app.includePreReleases,
                     onCheckedChange = onTogglePreReleases,
+                    enabled = !isBusy,
+                    modifier =
+                        Modifier.semantics {
+                            contentDescription = preReleaseString
+                        },
                 )
             }
 
-            Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(12.dp))
 
             when (val state = appItem.updateState) {
                 is UpdateState.Downloading -> {
@@ -746,39 +831,14 @@ fun AppItemCard(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                if (!app.isPendingInstall &&
-                    appItem.updateState !is UpdateState.Downloading &&
-                    appItem.updateState !is UpdateState.Installing &&
-                    appItem.updateState !is UpdateState.CheckingUpdate
-                ) {
-                    IconButton(
-                        onClick = onUninstallClick,
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.DeleteOutline,
-                            contentDescription = stringResource(Res.string.uninstall),
-                            tint = MaterialTheme.colorScheme.error,
-                        )
-                    }
-                }
-
-                Button(
-                    shapes = ButtonDefaults.shapes(),
-                    onClick = onOpenClick,
-                    modifier = Modifier.weight(1f),
-                    enabled =
-                        !app.isPendingInstall &&
-                            appItem.updateState !is UpdateState.Downloading &&
-                            appItem.updateState !is UpdateState.Installing,
+                IconButton(
+                    onClick = onUninstallClick,
+                    enabled = !isBusy,
                 ) {
                     Icon(
-                        imageVector = Icons.AutoMirrored.Filled.OpenInNew,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp),
-                    )
-                    Spacer(Modifier.width(4.dp))
-                    Text(
-                        text = stringResource(Res.string.open),
+                        imageVector = Icons.Outlined.DeleteOutline,
+                        contentDescription = stringResource(Res.string.uninstall),
+                        tint = MaterialTheme.colorScheme.error,
                     )
                 }
 
@@ -823,12 +883,79 @@ fun AppItemCard(
                                     text = stringResource(Res.string.update),
                                 )
                             }
+                        } else {
+                            Button(
+                                shapes = ButtonDefaults.shapes(),
+                                onClick = onOpenClick,
+                                modifier = Modifier.weight(1f),
+                                enabled = !isBusy,
+                            ) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.OpenInNew,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp),
+                                )
+                                Spacer(Modifier.width(4.dp))
+                                Text(
+                                    text = stringResource(Res.string.open),
+                                )
+                            }
                         }
                     }
                 }
             }
         }
     }
+}
+
+private fun buildVersionLabel(
+    installedVersion: String,
+    latestVersion: String?,
+    latestReleasePublishedAt: String?,
+    lastUpdatedAt: Long,
+): String {
+    val displayDate =
+        if (latestVersion != null) {
+            formatIsoDate(latestReleasePublishedAt)
+        } else {
+            formatEpochDate(lastUpdatedAt)
+        }
+
+    return buildString {
+        append(installedVersion)
+        if (latestVersion != null) {
+            append(" → ")
+            append(latestVersion)
+        }
+        displayDate?.let {
+            append(" (")
+            append(it)
+            append(")")
+        }
+    }
+}
+
+private fun formatIsoDate(isoTimestamp: String?): String? {
+    if (isoTimestamp.isNullOrBlank()) return null
+
+    return try {
+        Instant
+            .parse(isoTimestamp)
+            .toLocalDateTime(TimeZone.currentSystemDefault())
+            .date
+            .toString()
+    } catch (_: IllegalArgumentException) {
+        null
+    }
+}
+
+private fun formatEpochDate(timestamp: Long): String? {
+    if (timestamp <= 0L) return null
+    return Instant
+        .fromEpochMilliseconds(timestamp)
+        .toLocalDateTime(TimeZone.currentSystemDefault())
+        .date
+        .toString()
 }
 
 @Composable

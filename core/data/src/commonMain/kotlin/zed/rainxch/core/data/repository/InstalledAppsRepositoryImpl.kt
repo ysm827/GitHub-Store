@@ -149,6 +149,7 @@ class InstalledAppsRepositoryImpl(
                     timestamp = System.currentTimeMillis(),
                     latestVersionName = latestRelease.tagName,
                     latestVersionCode = null,
+                    latestReleasePublishedAt = latestRelease.publishedAt,
                 )
 
                 return isUpdateAvailable

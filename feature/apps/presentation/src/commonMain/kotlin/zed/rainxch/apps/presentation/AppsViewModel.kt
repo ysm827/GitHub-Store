@@ -22,6 +22,7 @@ import zed.rainxch.apps.domain.repository.AppsRepository
 import zed.rainxch.apps.presentation.mappers.toDomain
 import zed.rainxch.apps.presentation.mappers.toUi
 import zed.rainxch.apps.presentation.model.AppItem
+import zed.rainxch.apps.presentation.model.AppSortRule
 import zed.rainxch.apps.presentation.model.GithubAssetUi
 import zed.rainxch.apps.presentation.model.InstalledAppUi
 import zed.rainxch.apps.presentation.model.UpdateAllProgress
@@ -112,7 +113,7 @@ class AppsViewModel(
                                     downloadProgress = existing?.downloadProgress,
                                     error = existing?.error,
                                 )
-                            }.sortedByDescending { it.installedApp.isUpdateAvailable }
+                            }.sortedWith(appComparator(AppSortRule.UpdatesFirst))
                             .toImmutableList()
 
                     _state.update {
@@ -190,6 +191,14 @@ class AppsViewModel(
             is AppsAction.OnSearchChange -> {
                 _state.update {
                     it.copy(searchQuery = action.query)
+                }
+
+                filterApps()
+            }
+
+            is AppsAction.OnSortRuleSelected -> {
+                _state.update {
+                    it.copy(sortRule = action.sortRule)
                 }
 
                 filterApps()
@@ -328,7 +337,7 @@ class AppsViewModel(
     private fun filterApps() {
         _state.update { current ->
             current.copy(
-                filteredApps = computeFilteredApps(current.apps, current.searchQuery),
+                filteredApps = computeFilteredApps(current.apps, current.searchQuery, current.sortRule),
             )
         }
     }
@@ -336,19 +345,39 @@ class AppsViewModel(
     private fun computeFilteredApps(
         apps: ImmutableList<AppItem>,
         query: String,
+        sortRule: AppSortRule = _state.value.sortRule,
     ): ImmutableList<AppItem> =
         if (query.isBlank()) {
             apps
-                .sortedBy { it.installedApp.isUpdateAvailable }
+                .sortedWith(appComparator(sortRule))
                 .toImmutableList()
         } else {
             apps
                 .filter { appItem ->
                     appItem.installedApp.appName.contains(query, ignoreCase = true) ||
                         appItem.installedApp.repoOwner.contains(query, ignoreCase = true)
-                }.sortedBy { it.installedApp.isUpdateAvailable }
+                }.sortedWith(appComparator(sortRule))
                 .toImmutableList()
         }
+
+    private fun appComparator(sortRule: AppSortRule): Comparator<AppItem> {
+        val updatesFirst = compareByDescending<AppItem> { it.installedApp.isUpdateAvailable }
+        return when (sortRule) {
+            AppSortRule.UpdatesFirst ->
+                updatesFirst
+                    .thenByDescending { it.installedApp.latestReleasePublishedAt ?: "" }
+                    .thenBy { it.installedApp.appName.lowercase() }
+
+            AppSortRule.RecentlyUpdated ->
+                compareByDescending<AppItem> { it.installedApp.lastUpdatedAt }
+                    .thenByDescending { it.installedApp.isUpdateAvailable }
+                    .thenBy { it.installedApp.appName.lowercase() }
+
+            AppSortRule.Name ->
+                compareBy<AppItem> { it.installedApp.appName.lowercase() }
+                    .thenByDescending { it.installedApp.isUpdateAvailable }
+        }
+    }
 
     private fun togglePreReleases(packageName: String, enabled: Boolean) {
         viewModelScope.launch {

@@ -35,6 +35,7 @@ fun InstalledApp.toEntity(): InstalledAppEntity =
         installedVersionCode = installedVersionCode,
         latestVersionName = latestVersionName,
         latestVersionCode = latestVersionCode,
+        latestReleasePublishedAt = latestReleasePublishedAt,
         signingFingerprint = signingFingerprint,
         includePreReleases = includePreReleases,
     )
@@ -71,6 +72,7 @@ fun InstalledAppEntity.toDomain(): InstalledApp =
         installedVersionCode = installedVersionCode,
         latestVersionName = latestVersionName,
         latestVersionCode = latestVersionCode,
+        latestReleasePublishedAt = latestReleasePublishedAt,
         signingFingerprint = signingFingerprint,
         includePreReleases = includePreReleases,
     )

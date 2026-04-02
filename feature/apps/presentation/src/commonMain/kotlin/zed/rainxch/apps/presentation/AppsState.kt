@@ -5,6 +5,7 @@ import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 import zed.rainxch.apps.domain.model.GithubRepoInfo
 import zed.rainxch.apps.presentation.model.AppItem
+import zed.rainxch.apps.presentation.model.AppSortRule
 import zed.rainxch.apps.presentation.model.DeviceAppUi
 import zed.rainxch.apps.presentation.model.GithubAssetUi
 import zed.rainxch.apps.presentation.model.GithubRepoInfoUi
@@ -17,6 +18,7 @@ data class AppsState(
     val apps: ImmutableList<AppItem> = persistentListOf(),
     val filteredApps: ImmutableList<AppItem> = persistentListOf(),
     val searchQuery: String = "",
+    val sortRule: AppSortRule = AppSortRule.UpdatesFirst,
     val isLoading: Boolean = false,
     val isUpdatingAll: Boolean = false,
     val updateAllProgress: UpdateAllProgress? = null,

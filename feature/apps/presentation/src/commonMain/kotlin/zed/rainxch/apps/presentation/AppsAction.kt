@@ -1,6 +1,7 @@
 package zed.rainxch.apps.presentation
 
 import zed.rainxch.apps.presentation.model.InstalledAppUi
+import zed.rainxch.apps.presentation.model.AppSortRule
 import zed.rainxch.apps.presentation.model.DeviceAppUi
 import zed.rainxch.apps.presentation.model.GithubAssetUi
 
@@ -10,6 +11,10 @@ sealed interface AppsAction {
 
     data class OnSearchChange(
         val query: String,
+    ) : AppsAction
+
+    data class OnSortRuleSelected(
+        val sortRule: AppSortRule,
     ) : AppsAction
 
     data class OnOpenApp(
