@@ -914,7 +914,12 @@ private fun buildVersionLabel(
     latestReleasePublishedAt: String?,
     lastUpdatedAt: Long,
 ): String {
-    val displayDate = latestReleasePublishedAt?.takeIf { latestVersion != null }?.take(10) ?: formatEpochDate(lastUpdatedAt)
+    val displayDate =
+        if (latestVersion != null) {
+            formatIsoDate(latestReleasePublishedAt)
+        } else {
+            formatEpochDate(lastUpdatedAt)
+        }
 
     return buildString {
         append(installedVersion)
@@ -927,6 +932,20 @@ private fun buildVersionLabel(
             append(it)
             append(")")
         }
+    }
+}
+
+private fun formatIsoDate(isoTimestamp: String?): String? {
+    if (isoTimestamp.isNullOrBlank()) return null
+
+    return try {
+        Instant
+            .parse(isoTimestamp)
+            .toLocalDateTime(TimeZone.currentSystemDefault())
+            .date
+            .toString()
+    } catch (_: IllegalArgumentException) {
+        null
     }
 }
 
