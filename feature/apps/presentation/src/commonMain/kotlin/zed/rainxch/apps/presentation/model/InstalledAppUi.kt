@@ -40,4 +40,8 @@ data class InstalledAppUi(
     val fallbackToOlderReleases: Boolean = false,
     val preferredAssetVariant: String? = null,
     val preferredVariantStale: Boolean = false,
+    val preferredAssetTokens: String? = null,
+    val assetGlobPattern: String? = null,
+    val pickedAssetIndex: Int? = null,
+    val pickedAssetSiblingCount: Int? = null,
 )

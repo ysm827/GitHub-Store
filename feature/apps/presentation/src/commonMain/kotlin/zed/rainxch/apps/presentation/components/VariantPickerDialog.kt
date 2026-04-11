@@ -155,6 +155,19 @@ fun VariantPickerDialog(
             }
         },
         confirmButton = {
+            // Cross-link: jump to the asset filter sheet for this app.
+            // The two are conceptually adjacent — filter decides which
+            // assets are *considered*, the variant picker decides which
+            // of the matching assets gets installed. Users debugging
+            // "wrong file installed" need both within reach.
+            TextButton(
+                onClick = {
+                    onAction(AppsAction.OnDismissVariantPicker)
+                    onAction(AppsAction.OnOpenAdvancedSettings(app))
+                },
+            ) {
+                Text(stringResource(Res.string.variant_picker_open_filter))
+            }
             TextButton(onClick = { onAction(AppsAction.OnDismissVariantPicker) }) {
                 Text(stringResource(Res.string.cancel))
             }

@@ -640,4 +640,12 @@
     <string name="variant_picker_pinned">Закреплено: %1$s</string>
     <string name="variant_stale_hint">Вариант изменился — нажмите Обновить, чтобы выбрать снова</string>
     <string name="variant_label_inline">Вариант: %1$s</string>
+    <string name="variant_picker_unpin">Открепить</string>
+    <string name="variant_picker_pinned_badge">Закреплено</string>
+    <string name="variant_picker_open">Выбрать вариант</string>
+    <string name="variant_picker_open_filter">Настроить фильтр</string>
+    <string name="variant_first_pin_toast">Будущие обновления будут предпочитать вариант %1$s. Изменить это можно в любое время в настройках приложения.</string>
+    <string name="variant_first_pin_toast_generic">Будущие обновления будут предпочитать этот вариант. Изменить это можно в любое время в настройках приложения.</string>
+    <string name="variant_unpinned_toast">Вариант откреплён. Обновления будут использовать автоматический выбор.</string>
+    <string name="advanced_filter_variant_relation">Фильтр определяет, какие файлы рассматриваются. Закреплённый вариант определяет, какой из них будет установлен.</string>
 </resources>

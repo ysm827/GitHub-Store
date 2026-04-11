@@ -72,6 +72,9 @@ import zed.rainxch.githubstore.core.presentation.res.rate_limit_exceeded
 import zed.rainxch.githubstore.core.presentation.res.removed_from_favourites
 import zed.rainxch.githubstore.core.presentation.res.translation_failed
 import zed.rainxch.githubstore.core.presentation.res.update_package_mismatch
+import zed.rainxch.githubstore.core.presentation.res.variant_first_pin_toast
+import zed.rainxch.githubstore.core.presentation.res.variant_first_pin_toast_generic
+import zed.rainxch.githubstore.core.presentation.res.variant_unpinned_toast
 import java.io.File
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.coroutines.cancellation.CancellationException
@@ -371,52 +374,122 @@ class DetailsViewModel(
 
             is DetailsAction.SelectDownloadAsset -> {
                 _state.update { state -> state.copy(primaryAsset = action.release) }
-                // If this app is already tracked and there are multiple
-                // installable assets to choose from, the user just made
-                // an explicit variant choice — persist it so future
-                // updates from the apps list (and the background worker)
-                // stay on the same variant. Single-asset releases skip
-                // this; AssetVariant.deriveFromPickedAsset returns null.
-                val installedApp = _state.value.installedApp
-                val installable = _state.value.installableAssets
-                if (installedApp != null) {
-                    val variant =
-                        AssetVariant.deriveFromPickedAsset(
-                            pickedAssetName = action.release.name,
-                            siblingAssetCount = installable.size,
-                        )
-                    val current = installedApp.preferredAssetVariant
-                    val sameVariant = variant != null && variant.equals(current, ignoreCase = true)
-                    // Save when:
-                    //   * the user picked a non-null variant AND
-                    //   * either it differs from what's currently pinned,
-                    //     OR the stale flag is set (re-picking the same
-                    //     variant after a stale event must clear the
-                    //     flag — otherwise the warning lingers forever)
-                    val shouldSave =
-                        variant != null && (!sameVariant || installedApp.preferredVariantStale)
-                    if (shouldSave) {
-                        viewModelScope.launch {
-                            try {
-                                installedAppsRepository.setPreferredVariant(
-                                    packageName = installedApp.packageName,
-                                    variant = variant,
-                                )
-                            } catch (e: CancellationException) {
-                                throw e
-                            } catch (e: Exception) {
-                                logger.error(
-                                    "Failed to persist preferred variant for " +
-                                        "${installedApp.packageName}: ${e.message}",
-                                )
-                            }
-                        }
-                    }
-                }
+                persistPreferredVariantOnPick(action.release)
             }
 
             DetailsAction.ToggleReleaseAssetsPicker -> {
                 _state.update { state -> state.copy(isReleaseSelectorVisible = !state.isReleaseSelectorVisible) }
+            }
+
+            DetailsAction.UnpinPreferredVariant -> {
+                unpinPreferredVariant()
+            }
+        }
+    }
+
+    /**
+     * Persists the multi-layer fingerprint of [picked] when:
+     *  - the app is already tracked (otherwise there's no row to update —
+     *    the link flow will derive the fingerprint at install time)
+     *  - the picked asset has a non-null fingerprint (single-asset releases
+     *    and unparseable filenames return null)
+     *  - the new fingerprint differs from what's currently stored, OR the
+     *    stale flag is set (re-picking the same variant after a stale event
+     *    must clear the flag)
+     *
+     * Emits a one-time "remembered" toast when the app had no fingerprint
+     * before this pick — that's the user's first time pinning, and the
+     * implicit behaviour deserves to be made explicit.
+     */
+    private fun persistPreferredVariantOnPick(picked: GithubAsset) {
+        val installedApp = _state.value.installedApp ?: return
+        val installable = _state.value.installableAssets
+        val fingerprint =
+            AssetVariant.fingerprintFromPickedAsset(
+                pickedAssetName = picked.name,
+                siblingAssetCount = installable.size,
+            ) ?: return
+
+        val serializedTokens = AssetVariant.serializeTokens(fingerprint.tokens)
+        val pickedIndex = installable.indexOfFirst { it.id == picked.id }.takeIf { it >= 0 }
+
+        val currentVariant = installedApp.preferredAssetVariant
+        val currentTokens = installedApp.preferredAssetTokens
+        val currentGlob = installedApp.assetGlobPattern
+        val newSiblingCount = installable.size.takeIf { it > 0 }
+        val sameVariant =
+            if (fingerprint.variant == null && currentVariant == null) {
+                true
+            } else {
+                fingerprint.variant?.equals(currentVariant, ignoreCase = true) == true
+            }
+        val isSameFingerprint =
+            sameVariant &&
+                serializedTokens == currentTokens &&
+                fingerprint.glob == currentGlob &&
+                pickedIndex == installedApp.pickedAssetIndex &&
+                newSiblingCount == installedApp.pickedAssetSiblingCount
+
+        // Treat the app as "previously unpinned" only when *all* identity
+        // layers are blank — otherwise we'd nag every time the user
+        // re-picked the same variant after the resolver populated the
+        // legacy tail field.
+        val isFirstPin =
+            currentVariant.isNullOrBlank() &&
+                currentTokens.isNullOrBlank() &&
+                currentGlob.isNullOrBlank()
+
+        val shouldSave = !isSameFingerprint || installedApp.preferredVariantStale
+        if (!shouldSave) return
+
+        viewModelScope.launch {
+            try {
+                installedAppsRepository.setPreferredVariant(
+                    packageName = installedApp.packageName,
+                    variant = fingerprint.variant,
+                    tokens = serializedTokens,
+                    glob = fingerprint.glob,
+                    pickedIndex = pickedIndex,
+                    siblingCount = newSiblingCount,
+                )
+                if (isFirstPin) {
+                    val label = fingerprint.variant
+                        ?: fingerprint.tokens.firstOrNull()
+                        ?: ""
+                    val message =
+                        if (label.isNotEmpty()) {
+                            getString(Res.string.variant_first_pin_toast, label)
+                        } else {
+                            getString(Res.string.variant_first_pin_toast_generic)
+                        }
+                    _events.send(DetailsEvent.OnMessage(message))
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                logger.error(
+                    "Failed to persist preferred variant for " +
+                        "${installedApp.packageName}: ${e.message}",
+                )
+            }
+        }
+    }
+
+    private fun unpinPreferredVariant() {
+        val installedApp = _state.value.installedApp ?: return
+        viewModelScope.launch {
+            try {
+                installedAppsRepository.clearPreferredVariant(installedApp.packageName)
+                _events.send(
+                    DetailsEvent.OnMessage(getString(Res.string.variant_unpinned_toast)),
+                )
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                logger.error(
+                    "Failed to clear preferred variant for " +
+                        "${installedApp.packageName}: ${e.message}",
+                )
             }
         }
     }

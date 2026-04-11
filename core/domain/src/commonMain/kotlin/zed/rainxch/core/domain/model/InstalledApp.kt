@@ -62,4 +62,32 @@ data class InstalledApp(
      * a new variant.
      */
     val preferredVariantStale: Boolean = false,
+    /**
+     * Token-set fingerprint of the picked asset, serialized via
+     * `AssetVariant.serializeTokens` (sorted, joined by `|`). Primary
+     * identity layer for the resolver — handles arch-before-version,
+     * OS-version interlopers, and counters between version and arch.
+     *
+     * `null` for older rows pinned before this column existed and for
+     * filenames where the token vocabulary recognises nothing.
+     */
+    val preferredAssetTokens: String? = null,
+    /**
+     * Glob-pattern fingerprint of the picked asset (e.g.
+     * `app-*-arm64-v8a.apk`). Secondary identity layer used when the
+     * token vocabulary doesn't recognise anything in the filename —
+     * the most common case being custom flavor names.
+     */
+    val assetGlobPattern: String? = null,
+    /**
+     * Zero-based index of the picked asset in the original release's
+     * installable-asset list. Last-resort same-position fallback when
+     * none of the fingerprint layers match in a fresh release.
+     */
+    val pickedAssetIndex: Int? = null,
+    /**
+     * Total installable assets in the release the user picked from.
+     * Pairs with [pickedAssetIndex] for the same-position fallback.
+     */
+    val pickedAssetSiblingCount: Int? = null,
 )

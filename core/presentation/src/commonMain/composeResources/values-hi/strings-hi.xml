@@ -671,4 +671,12 @@
     <string name="variant_picker_pinned">पिन किया गया: %1$s</string>
     <string name="variant_stale_hint">वेरिएंट बदला — फिर से चुनने के लिए अपडेट टैप करें</string>
     <string name="variant_label_inline">वेरिएंट: %1$s</string>
+    <string name="variant_picker_unpin">अनपिन</string>
+    <string name="variant_picker_pinned_badge">पिन किया गया</string>
+    <string name="variant_picker_open">वेरिएंट चुनें</string>
+    <string name="variant_picker_open_filter">फ़िल्टर समायोजित करें</string>
+    <string name="variant_first_pin_toast">भविष्य के अपडेट %1$s वेरिएंट को प्राथमिकता देंगे। ऐप सेटिंग्स में किसी भी समय बदलें।</string>
+    <string name="variant_first_pin_toast_generic">भविष्य के अपडेट इस वेरिएंट को प्राथमिकता देंगे। ऐप सेटिंग्स में किसी भी समय बदलें।</string>
+    <string name="variant_unpinned_toast">वेरिएंट अनपिन किया गया। अपडेट स्वचालित चयनकर्ता का उपयोग करेंगे।</string>
+    <string name="advanced_filter_variant_relation">फ़िल्टर तय करता है कि कौन सी एसेट्स पर विचार किया जाए। वेरिएंट पिन तय करता है कि उनमें से कौन इंस्टॉल हो।</string>
 </resources>

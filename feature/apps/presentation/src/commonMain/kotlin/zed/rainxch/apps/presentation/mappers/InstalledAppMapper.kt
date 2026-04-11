@@ -42,6 +42,10 @@ fun InstalledApp.toUi(): InstalledAppUi =
         fallbackToOlderReleases = fallbackToOlderReleases,
         preferredAssetVariant = preferredAssetVariant,
         preferredVariantStale = preferredVariantStale,
+        preferredAssetTokens = preferredAssetTokens,
+        assetGlobPattern = assetGlobPattern,
+        pickedAssetIndex = pickedAssetIndex,
+        pickedAssetSiblingCount = pickedAssetSiblingCount,
     )
 
 fun InstalledAppUi.toDomain(): InstalledApp =
@@ -83,4 +87,8 @@ fun InstalledAppUi.toDomain(): InstalledApp =
         fallbackToOlderReleases = fallbackToOlderReleases,
         preferredAssetVariant = preferredAssetVariant,
         preferredVariantStale = preferredVariantStale,
+        preferredAssetTokens = preferredAssetTokens,
+        assetGlobPattern = assetGlobPattern,
+        pickedAssetIndex = pickedAssetIndex,
+        pickedAssetSiblingCount = pickedAssetSiblingCount,
     )

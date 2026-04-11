@@ -640,4 +640,12 @@
     <string name="variant_picker_pinned">Przypięty do: %1$s</string>
     <string name="variant_stale_hint">Wariant zmieniony — naciśnij Aktualizuj, aby wybrać ponownie</string>
     <string name="variant_label_inline">Wariant: %1$s</string>
+    <string name="variant_picker_unpin">Odepnij</string>
+    <string name="variant_picker_pinned_badge">Przypięty</string>
+    <string name="variant_picker_open">Wybierz wariant</string>
+    <string name="variant_picker_open_filter">Dostosuj filtr</string>
+    <string name="variant_first_pin_toast">Przyszłe aktualizacje będą preferować wariant %1$s. Możesz to zmienić w dowolnym momencie w ustawieniach aplikacji.</string>
+    <string name="variant_first_pin_toast_generic">Przyszłe aktualizacje będą preferować ten wariant. Możesz to zmienić w dowolnym momencie w ustawieniach aplikacji.</string>
+    <string name="variant_unpinned_toast">Wariant odpięty. Aktualizacje będą używać automatycznego selektora.</string>
+    <string name="advanced_filter_variant_relation">Filtr decyduje, które pliki są brane pod uwagę. Przypięty wariant decyduje, który z nich zostanie zainstalowany.</string>
 </resources>

@@ -670,4 +670,12 @@
     <string name="variant_picker_pinned">Sabitlendi: %1$s</string>
     <string name="variant_stale_hint">Varyant değişti — tekrar seçmek için Güncelle\'ye dokunun</string>
     <string name="variant_label_inline">Varyant: %1$s</string>
+    <string name="variant_picker_unpin">Sabitlemeyi kaldır</string>
+    <string name="variant_picker_pinned_badge">Sabitlendi</string>
+    <string name="variant_picker_open">Varyant seç</string>
+    <string name="variant_picker_open_filter">Filtreyi düzenle</string>
+    <string name="variant_first_pin_toast">Sonraki güncellemeler %1$s varyantını tercih edecek. Bunu uygulama ayarlarından istediğiniz zaman değiştirebilirsiniz.</string>
+    <string name="variant_first_pin_toast_generic">Sonraki güncellemeler bu varyantı tercih edecek. Bunu uygulama ayarlarından istediğiniz zaman değiştirebilirsiniz.</string>
+    <string name="variant_unpinned_toast">Varyant sabitlemesi kaldırıldı. Güncellemeler otomatik seçiciyi kullanacak.</string>
+    <string name="advanced_filter_variant_relation">Filtre hangi dosyaların dikkate alınacağına karar verir. Varyant sabitlemesi bunlardan hangisinin yükleneceğine karar verir.</string>
 </resources>

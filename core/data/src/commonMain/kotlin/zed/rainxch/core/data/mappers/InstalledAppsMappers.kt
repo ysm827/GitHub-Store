@@ -42,6 +42,10 @@ fun InstalledApp.toEntity(): InstalledAppEntity =
         fallbackToOlderReleases = fallbackToOlderReleases,
         preferredAssetVariant = preferredAssetVariant,
         preferredVariantStale = preferredVariantStale,
+        preferredAssetTokens = preferredAssetTokens,
+        assetGlobPattern = assetGlobPattern,
+        pickedAssetIndex = pickedAssetIndex,
+        pickedAssetSiblingCount = pickedAssetSiblingCount,
     )
 
 fun InstalledAppEntity.toDomain(): InstalledApp =
@@ -83,4 +87,8 @@ fun InstalledAppEntity.toDomain(): InstalledApp =
         fallbackToOlderReleases = fallbackToOlderReleases,
         preferredAssetVariant = preferredAssetVariant,
         preferredVariantStale = preferredVariantStale,
+        preferredAssetTokens = preferredAssetTokens,
+        assetGlobPattern = assetGlobPattern,
+        pickedAssetIndex = pickedAssetIndex,
+        pickedAssetSiblingCount = pickedAssetSiblingCount,
     )

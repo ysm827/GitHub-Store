@@ -66,19 +66,43 @@ interface InstalledAppsRepository {
     )
 
     /**
-     * Persists the user's preferred asset variant tag for [packageName]
-     * (or `null` to fall back to the platform's auto-picker). Always
-     * clears the `preferredVariantStale` flag in the same write because
-     * the user has just made an explicit choice.
+     * Persists the user's preferred asset variant for [packageName]
+     * along with the full multi-layer fingerprint:
      *
-     * Implementations should re-check the app for updates immediately so
-     * the cached `latestAsset*` fields point at the variant the user
+     *  - [variant]: legacy substring-tail label, used as the display
+     *    name and as a third-tier match in the resolver
+     *  - [tokens]: serialized token-set fingerprint (primary identity)
+     *  - [glob]: glob-pattern fingerprint (secondary identity)
+     *  - [pickedIndex]: zero-based index of the picked asset in the
+     *    release's installable-asset list (same-position fallback)
+     *  - [siblingCount]: total installable assets in the picked release
+     *
+     * Always clears the `preferredVariantStale` flag in the same write
+     * because the user has just made an explicit choice.
+     *
+     * Pass `null` for all fields except [packageName] to unpin and fall
+     * back to the platform auto-picker — convenient via [clearPreferredVariant].
+     *
+     * Implementations should re-check the app for updates immediately
+     * so the cached `latestAsset*` fields point at the variant the user
      * just selected, without waiting for the next periodic worker.
      */
     suspend fun setPreferredVariant(
         packageName: String,
         variant: String?,
+        tokens: String? = null,
+        glob: String? = null,
+        pickedIndex: Int? = null,
+        siblingCount: Int? = null,
     )
+
+    /**
+     * Convenience for [setPreferredVariant] that clears every
+     * fingerprint layer for [packageName] in a single call. The
+     * resolver will fall back to the platform auto-picker on the next
+     * update check.
+     */
+    suspend fun clearPreferredVariant(packageName: String)
 
     /**
      * Dry-run helper for the per-app advanced settings sheet. Fetches a

@@ -189,6 +189,19 @@ fun AdvancedAppSettingsBottomSheet(
             // Tappable row that opens the variant picker dialog. Shows
             // the currently-pinned variant tag (or "Auto" when none),
             // and warns the user when the pin has gone stale.
+            //
+            // Cross-link copy: a one-liner above the row clarifies
+            // the *relationship* between the filter (which assets are
+            // even considered) and the variant pin (which of the
+            // matching assets gets installed) — these are the two
+            // axes a user is actually adjusting when they wonder why
+            // an update grabbed the wrong file.
+            Text(
+                text = stringResource(Res.string.advanced_filter_variant_relation),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(8.dp))
             VariantRow(
                 pinnedVariant = app.preferredAssetVariant,
                 isStale = app.preferredVariantStale,

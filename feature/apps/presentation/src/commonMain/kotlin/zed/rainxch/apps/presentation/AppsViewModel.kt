@@ -868,7 +868,9 @@ class AppsViewModel(
                     val variantMatch =
                         AssetVariant.resolvePreferredAsset(
                             assets = installableAssets,
-                            preferredVariant = app.preferredAssetVariant,
+                            pinnedVariant = app.preferredAssetVariant,
+                            pinnedTokens = AssetVariant.deserializeTokens(app.preferredAssetTokens),
+                            pinnedGlob = app.assetGlobPattern,
                         )
                     val primaryAsset =
                         variantMatch

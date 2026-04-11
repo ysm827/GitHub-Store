@@ -90,6 +90,7 @@ fun LazyListScope.header(
                     assetsList = state.installableAssets,
                     selectedAsset = state.primaryAsset,
                     isPickerVisible = state.isReleaseSelectorVisible,
+                    pinnedVariant = state.installedApp?.preferredAssetVariant,
                     onAction = onAction,
                     modifier = Modifier.weight(.65f),
                 )

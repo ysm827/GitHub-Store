@@ -673,4 +673,12 @@
     <string name="variant_picker_pinned">مثبت على: %1$s</string>
     <string name="variant_stale_hint">تغير النوع — انقر تحديث للاختيار مرة أخرى</string>
     <string name="variant_label_inline">النوع: %1$s</string>
+    <string name="variant_picker_unpin">إلغاء التثبيت</string>
+    <string name="variant_picker_pinned_badge">مثبت</string>
+    <string name="variant_picker_open">اختيار النوع</string>
+    <string name="variant_picker_open_filter">تعديل التصفية</string>
+    <string name="variant_first_pin_toast">سوف تفضل التحديثات المستقبلية النوع %1$s. غيّر هذا في أي وقت من إعدادات التطبيق.</string>
+    <string name="variant_first_pin_toast_generic">سوف تفضل التحديثات المستقبلية هذا النوع. غيّر هذا في أي وقت من إعدادات التطبيق.</string>
+    <string name="variant_unpinned_toast">تم إلغاء تثبيت النوع. ستستخدم التحديثات المنتقي التلقائي.</string>
+    <string name="advanced_filter_variant_relation">يحدد المرشّح الملفات التي يتم النظر فيها. يحدد تثبيت النوع أيها سيتم تثبيته.</string>
 </resources>

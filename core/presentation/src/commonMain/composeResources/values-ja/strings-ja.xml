@@ -633,4 +633,12 @@
     <string name="variant_picker_pinned">固定中: %1$s</string>
     <string name="variant_stale_hint">バリアントが変更されました — アップデートをタップして再選択</string>
     <string name="variant_label_inline">バリアント: %1$s</string>
+    <string name="variant_picker_unpin">固定解除</string>
+    <string name="variant_picker_pinned_badge">固定中</string>
+    <string name="variant_picker_open">バリアントを選択</string>
+    <string name="variant_picker_open_filter">フィルターを調整</string>
+    <string name="variant_first_pin_toast">今後のアップデートでは %1$s バリアントが優先されます。アプリ設定からいつでも変更できます。</string>
+    <string name="variant_first_pin_toast_generic">今後のアップデートではこのバリアントが優先されます。アプリ設定からいつでも変更できます。</string>
+    <string name="variant_unpinned_toast">バリアントの固定を解除しました。アップデートは自動選択を使用します。</string>
+    <string name="advanced_filter_variant_relation">フィルターはどのアセットを考慮するかを決めます。バリアントの固定はそのうちどれをインストールするかを決めます。</string>
 </resources>

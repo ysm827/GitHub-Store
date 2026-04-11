@@ -634,4 +634,12 @@
     <string name="variant_picker_pinned">已固定为：%1$s</string>
     <string name="variant_stale_hint">变体已更改 — 点击更新以重新选择</string>
     <string name="variant_label_inline">变体：%1$s</string>
+    <string name="variant_picker_unpin">取消固定</string>
+    <string name="variant_picker_pinned_badge">已固定</string>
+    <string name="variant_picker_open">选择变体</string>
+    <string name="variant_picker_open_filter">调整筛选器</string>
+    <string name="variant_first_pin_toast">将来的更新将优先使用 %1$s 变体。可以随时在应用设置中更改。</string>
+    <string name="variant_first_pin_toast_generic">将来的更新将优先使用此变体。可以随时在应用设置中更改。</string>
+    <string name="variant_unpinned_toast">变体固定已取消。更新将使用自动选择器。</string>
+    <string name="advanced_filter_variant_relation">筛选器决定考虑哪些资源。变体固定决定其中哪一个被安装。</string>
 </resources>

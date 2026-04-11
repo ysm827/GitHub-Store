@@ -102,4 +102,12 @@ sealed interface DetailsAction {
     ) : DetailsAction
 
     data object ToggleReleaseAssetsPicker : DetailsAction
+
+    /**
+     * Clears the user's preferred variant pin for the currently-tracked
+     * app. Falls back to the platform auto-picker on subsequent updates.
+     * Triggered by the "Unpin variant" affordance in the asset picker
+     * sheet.
+     */
+    data object UnpinPreferredVariant : DetailsAction
 }

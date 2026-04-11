@@ -680,4 +680,13 @@
     <string name="variant_picker_pinned">Pinned to: %1$s</string>
     <string name="variant_stale_hint">Variant changed — tap Update to pick again</string>
     <string name="variant_label_inline">Variant: %1$s</string>
+    <!-- Multi-layer variant fingerprint UX additions -->
+    <string name="variant_picker_unpin">Unpin</string>
+    <string name="variant_picker_pinned_badge">Pinned</string>
+    <string name="variant_picker_open">Pick variant</string>
+    <string name="variant_picker_open_filter">Adjust filter</string>
+    <string name="variant_first_pin_toast">Future updates will prefer the %1$s variant. Change this anytime in app settings.</string>
+    <string name="variant_first_pin_toast_generic">Future updates will prefer this variant. Change this anytime in app settings.</string>
+    <string name="variant_unpinned_toast">Variant unpinned. Updates will use the automatic picker.</string>
+    <string name="advanced_filter_variant_relation">The filter decides which assets are considered. The variant pin decides which of those assets gets installed.</string>
 </resources>

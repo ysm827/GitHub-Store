@@ -89,15 +89,23 @@ interface InstalledAppDao {
     )
 
     /**
-     * Sets the user's preferred asset variant. Always clears the
-     * "stale" flag in the same write because the user has just made an
-     * explicit choice — whatever was stored before is no longer stale,
-     * even if the new variant is the same value.
+     * Sets the user's preferred asset variant along with its multi-layer
+     * fingerprint (token set, glob pattern, same-position metadata).
+     * Always clears the "stale" flag in the same write because the user
+     * has just made an explicit choice — whatever was stored before is
+     * no longer stale, even if the new variant is the same value.
+     *
+     * Pass `null` for [variant] (and the other fingerprint fields) to
+     * unpin and fall back to the platform auto-picker.
      */
     @Query(
         """
         UPDATE installed_apps
            SET preferredAssetVariant = :variant,
+               preferredAssetTokens = :tokens,
+               assetGlobPattern = :glob,
+               pickedAssetIndex = :pickedIndex,
+               pickedAssetSiblingCount = :siblingCount,
                preferredVariantStale = 0
          WHERE packageName = :packageName
         """,
@@ -105,6 +113,10 @@ interface InstalledAppDao {
     suspend fun updatePreferredVariant(
         packageName: String,
         variant: String?,
+        tokens: String?,
+        glob: String?,
+        pickedIndex: Int?,
+        siblingCount: Int?,
     )
 
     /**

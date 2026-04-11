@@ -2,6 +2,7 @@
 
 package zed.rainxch.apps.presentation
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,6 +29,7 @@ import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.FilterAlt
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Update
@@ -104,6 +106,7 @@ import zed.rainxch.githubstore.core.presentation.res.Res
 import zed.rainxch.githubstore.core.presentation.res.add_by_link
 import zed.rainxch.githubstore.core.presentation.res.advanced_settings_open
 import zed.rainxch.githubstore.core.presentation.res.variant_label_inline
+import zed.rainxch.githubstore.core.presentation.res.variant_picker_open
 import zed.rainxch.githubstore.core.presentation.res.variant_stale_hint
 import zed.rainxch.githubstore.core.presentation.res.cancel
 import zed.rainxch.githubstore.core.presentation.res.check_for_updates
@@ -531,6 +534,14 @@ fun AppsScreen(
                                         onAdvancedSettingsClick = {
                                             onAction(AppsAction.OnOpenAdvancedSettings(appItem.installedApp))
                                         },
+                                        onPickVariantClick = {
+                                            onAction(
+                                                AppsAction.OnOpenVariantPicker(
+                                                    app = appItem.installedApp,
+                                                    resumeUpdateAfterPick = false,
+                                                ),
+                                            )
+                                        },
                                         modifier =
                                             Modifier
                                                 .then(
@@ -623,6 +634,7 @@ fun AppItemCard(
     onRepoClick: () -> Unit,
     onTogglePreReleases: (Boolean) -> Unit,
     onAdvancedSettingsClick: () -> Unit,
+    onPickVariantClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val app = appItem.installedApp
@@ -708,6 +720,11 @@ fun AppItemCard(
                                 text = stringResource(Res.string.variant_stale_hint),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.error,
+                                modifier =
+                                    Modifier.clickable(
+                                        enabled = !isBusy,
+                                        onClick = onPickVariantClick,
+                                    ),
                             )
                         }
 
@@ -807,6 +824,32 @@ fun AppItemCard(
                                     MaterialTheme.colorScheme.primary
                                 } else {
                                     MaterialTheme.colorScheme.onSurfaceVariant
+                                },
+                        )
+                    }
+
+                    // Always-visible "Pick variant" entry point. Tints to
+                    // primary when a variant is pinned (so users can see
+                    // at a glance whether the app has a sticky pick) and
+                    // to error when the pinned variant has gone stale.
+                    val pickVariantDescription =
+                        stringResource(Res.string.variant_picker_open)
+                    val hasPin = !app.preferredAssetVariant.isNullOrBlank()
+                    IconButton(
+                        onClick = onPickVariantClick,
+                        enabled = !isBusy,
+                        modifier = Modifier.semantics {
+                            contentDescription = pickVariantDescription
+                        },
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Tune,
+                            contentDescription = null,
+                            tint =
+                                when {
+                                    app.preferredVariantStale -> MaterialTheme.colorScheme.error
+                                    hasPin -> MaterialTheme.colorScheme.primary
+                                    else -> MaterialTheme.colorScheme.onSurfaceVariant
                                 },
                         )
                     }

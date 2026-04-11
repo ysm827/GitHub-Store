@@ -83,4 +83,42 @@ data class InstalledAppEntity(
      */
     @ColumnInfo(defaultValue = "0")
     val preferredVariantStale: Boolean = false,
+    /**
+     * Token-set fingerprint of the picked asset, serialized as
+     * `token1|token2|…` (alphabetically sorted so equal sets always
+     * serialize to identical strings — letting the resolver compare
+     * with plain string equality instead of parsing).
+     *
+     * The token vocabulary is closed (see `AssetVariant.kt`); only
+     * recognised arch / flavor tokens are stored. `null` means
+     * "no token fingerprint available — fall back to glob or tail".
+     */
+    val preferredAssetTokens: String? = null,
+    /**
+     * Glob-pattern fingerprint of the picked asset (e.g.
+     * `app-*-arm64-v8a.apk`). Used as a secondary identity layer when
+     * the token vocabulary doesn't recognise anything in the filename
+     * — the most common case being custom flavor names.
+     *
+     * `null` means the picked filename had no version-shaped substring
+     * to wildcard, so the glob would just equal the filename and
+     * provides no rescue value.
+     */
+    val assetGlobPattern: String? = null,
+    /**
+     * Zero-based index of the picked asset in the original release's
+     * installable-asset list. Used by the same-position fallback —
+     * when none of the fingerprint layers match in a fresh release
+     * but the new release has exactly the same number of installable
+     * assets, the asset at this index is preferred.
+     *
+     * Weak signal, only consulted as a last resort. `null` for older
+     * rows pinned before this column existed.
+     */
+    val pickedAssetIndex: Int? = null,
+    /**
+     * Total installable assets in the release the user picked from.
+     * Pairs with [pickedAssetIndex] for same-position fallback.
+     */
+    val pickedAssetSiblingCount: Int? = null,
 )

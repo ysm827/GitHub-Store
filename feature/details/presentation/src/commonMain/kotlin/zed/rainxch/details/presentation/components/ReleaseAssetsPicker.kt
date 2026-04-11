@@ -53,6 +53,7 @@ import androidx.compose.ui.window.DialogProperties
 import org.jetbrains.compose.resources.stringResource
 import zed.rainxch.core.domain.model.GithubAsset
 import zed.rainxch.core.domain.model.GithubUser
+import zed.rainxch.core.domain.util.AssetVariant
 import zed.rainxch.details.presentation.DetailsAction
 import zed.rainxch.githubstore.core.presentation.res.*
 import zed.rainxch.githubstore.core.presentation.res.Res
@@ -68,6 +69,7 @@ fun ReleaseAssetsPicker(
     modifier: Modifier = Modifier,
     selectedAsset: GithubAsset? = null,
     isPickerVisible: Boolean = false,
+    pinnedVariant: String? = null,
 ) {
     val isPickerEnabled by remember(assetsList) {
         derivedStateOf { assetsList.isNotEmpty() }
@@ -77,8 +79,10 @@ fun ReleaseAssetsPicker(
         showPicker = isPickerVisible,
         assetsList = assetsList,
         selectedAsset = selectedAsset,
+        pinnedVariant = pinnedVariant,
         onDismiss = { onAction(DetailsAction.ToggleReleaseAssetsPicker) },
         onSelect = { onAction(DetailsAction.SelectDownloadAsset(it)) },
+        onUnpin = { onAction(DetailsAction.UnpinPreferredVariant) },
     )
 
     Column(
@@ -128,9 +132,11 @@ fun ReleaseAssetsPicker(
 private fun ReleaseAssetsItemsPicker(
     assetsList: List<GithubAsset>,
     selectedAsset: GithubAsset?,
+    pinnedVariant: String?,
     showPicker: Boolean,
     onDismiss: () -> Unit,
     onSelect: (GithubAsset) -> Unit,
+    onUnpin: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     if (!showPicker) return
@@ -169,6 +175,30 @@ private fun ReleaseAssetsItemsPicker(
                 }
             }
 
+            // "Pinned to: …  [Unpin]" hint, only when the user actually
+            // has a pin. Surfaces both the current pin and a one-tap
+            // unpin affordance — the only place in the app where a pin
+            // can be removed without picking a different one.
+            if (!pinnedVariant.isNullOrBlank()) {
+                Row(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = stringResource(Res.string.variant_picker_pinned, pinnedVariant),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.weight(1f),
+                    )
+                    androidx.compose.material3.TextButton(onClick = onUnpin) {
+                        Text(stringResource(Res.string.variant_picker_unpin))
+                    }
+                }
+            }
+
             HorizontalDivider()
 
             LazyColumn(
@@ -177,9 +207,14 @@ private fun ReleaseAssetsItemsPicker(
             ) {
                 if (assetsList.isNotEmpty()) {
                     items(items = assetsList, key = { it.id }) { asset ->
+                        val variantTag = AssetVariant.extract(asset.name)
+                        val isPinned =
+                            !pinnedVariant.isNullOrBlank() &&
+                                variantTag?.equals(pinnedVariant, ignoreCase = true) == true
                         ReleaseAssetItem(
                             asset = asset,
                             isSelected = asset.id == selectedAsset?.id,
+                            isPinned = isPinned,
                             onClick = { onSelect(asset) },
                             modifier = Modifier.fillMaxWidth(),
                         )
@@ -243,6 +278,7 @@ private fun ReleaseAssetItem(
     isSelected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    isPinned: Boolean = false,
 ) {
     Row(
         modifier =
@@ -255,19 +291,36 @@ private fun ReleaseAssetItem(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = asset.name,
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                overflow = TextOverflow.Ellipsis,
-                maxLines = 2,
-                color =
-                    if (isSelected) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.onSurface
-                    },
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = asset.name,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                    overflow = TextOverflow.Ellipsis,
+                    maxLines = 2,
+                    color =
+                        if (isSelected) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurface
+                        },
+                    modifier = Modifier.weight(1f, fill = false),
+                )
+                if (isPinned) {
+                    Spacer(Modifier.width(6.dp))
+                    Surface(
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp),
+                    ) {
+                        Text(
+                            text = stringResource(Res.string.variant_picker_pinned_badge),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                        )
+                    }
+                }
+            }
             Text(
                 text = formatFileSize(asset.size),
                 style = MaterialTheme.typography.bodySmall,

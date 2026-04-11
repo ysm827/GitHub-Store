@@ -149,8 +149,20 @@ class InstalledAppsRepositoryImpl(
      * Walks [releases] (already in newest-first order) and returns the first
      * release whose installable asset list — after applying [filter] — yields
      * a usable asset. The picker tries, in order:
-     *   1. The user's [preferredVariant] (if set)
-     *   2. The platform installer's architecture-aware auto-pick
+     *
+     *   1. **Token-set match** — pinned token fingerprint equals the asset's
+     *   2. **Glob match** — pinned glob pattern equals the asset's
+     *   3. **Tail-string match** — legacy substring-tail equality
+     *   4. **Same-position fallback** — same index, same total count of
+     *      installable assets as when the user originally pinned
+     *   5. **Platform auto-pick** — architecture-aware default
+     *
+     * Layers 1–3 are wrapped behind [AssetVariant.resolvePreferredAsset].
+     * Layer 4 is consulted only when 1–3 all miss but the new release
+     * has exactly the same number of installable assets as the picked
+     * release. Layer 5 keeps updates flowing even when the variant is
+     * completely lost — the caller flips `variantWasLost` so the UI
+     * can surface the discrepancy.
      *
      * When [filter] is null, only the first release in the window is
      * considered: this preserves the pre-existing behaviour for apps that
@@ -167,6 +179,10 @@ class InstalledAppsRepositoryImpl(
         filter: AssetFilter?,
         fallbackToOlderReleases: Boolean,
         preferredVariant: String?,
+        preferredTokens: Set<String>,
+        preferredGlob: String?,
+        pickedIndex: Int?,
+        pickedSiblingCount: Int?,
     ): ResolvedRelease? {
         if (releases.isEmpty()) return null
 
@@ -177,6 +193,15 @@ class InstalledAppsRepositoryImpl(
                 releases.take(1)
             }
 
+        // "Has any pin" tracks whether the user has *something* stored
+        // for variant identity — used to decide whether the
+        // `variantWasLost` flag should flip on. Without this, an app
+        // that's never been pinned would always look "lost".
+        val hasAnyPin =
+            preferredVariant != null ||
+                preferredTokens.isNotEmpty() ||
+                !preferredGlob.isNullOrBlank()
+
         for (release in candidates) {
             val installableForPlatform =
                 release.assets.filter { installer.isAssetInstallable(it.name) }
@@ -186,17 +211,43 @@ class InstalledAppsRepositoryImpl(
 
             if (installableForApp.isEmpty()) continue
 
-            // Variant resolution: try the user's pinned variant first.
-            // Falling back to the auto-picker is intentional — we'd
-            // rather hand the user a working install than block updates,
-            // and the caller will mark `variantWasLost` so the UI can
-            // surface the discrepancy.
-            val variantMatch =
-                AssetVariant.resolvePreferredAsset(installableForApp, preferredVariant)
-            val primary = variantMatch
+            // Layers 1–3: token set, glob, then legacy tail string.
+            val fingerprintMatch =
+                AssetVariant.resolvePreferredAsset(
+                    assets = installableForApp,
+                    pinnedVariant = preferredVariant,
+                    pinnedTokens = preferredTokens.takeIf { it.isNotEmpty() },
+                    pinnedGlob = preferredGlob,
+                )
+
+            // Layer 4: same-position fallback. Only consulted when no
+            // fingerprint matched and the user actually pinned
+            // *something* (otherwise the index is meaningless).
+            val positionMatch =
+                if (fingerprintMatch == null && hasAnyPin) {
+                    AssetVariant.resolveBySamePosition(
+                        assets = installableForApp,
+                        originalIndex = pickedIndex,
+                        siblingCountAtPickTime = pickedSiblingCount,
+                    )
+                } else {
+                    null
+                }
+
+            // Layer 5: platform auto-pick (last resort, never null
+            // unless the platform installer can't pick anything).
+            val primary = fingerprintMatch
+                ?: positionMatch
                 ?: installer.choosePrimaryAsset(installableForApp)
                 ?: continue
-            val variantWasLost = preferredVariant != null && variantMatch == null
+
+            // The variant is "lost" when the user had a pin but neither
+            // a fingerprint nor a same-position match recovered it.
+            // Same-position rescues silently (it's a confidence-trick
+            // — the user can't tell anything went wrong) so we don't
+            // flag it as lost; otherwise the UI would nag every check.
+            val variantWasLost =
+                hasAnyPin && fingerprintMatch == null && positionMatch == null
 
             return ResolvedRelease(release, primary, variantWasLost)
         }
@@ -241,6 +292,10 @@ class InstalledAppsRepositoryImpl(
                     filter = compiledFilter,
                     fallbackToOlderReleases = app.fallbackToOlderReleases,
                     preferredVariant = app.preferredAssetVariant,
+                    preferredTokens = AssetVariant.deserializeTokens(app.preferredAssetTokens),
+                    preferredGlob = app.assetGlobPattern,
+                    pickedIndex = app.pickedAssetIndex,
+                    pickedSiblingCount = app.pickedAssetSiblingCount,
                 )
 
             if (resolved == null) {
@@ -418,11 +473,21 @@ class InstalledAppsRepositoryImpl(
     override suspend fun setPreferredVariant(
         packageName: String,
         variant: String?,
+        tokens: String?,
+        glob: String?,
+        pickedIndex: Int?,
+        siblingCount: Int?,
     ) {
-        val normalized = variant?.trim()?.takeIf { it.isNotEmpty() }
+        val normalizedVariant = variant?.trim()?.takeIf { it.isNotEmpty() }
+        val normalizedTokens = tokens?.trim()?.takeIf { it.isNotEmpty() }
+        val normalizedGlob = glob?.trim()?.takeIf { it.isNotEmpty() }
         installedAppsDao.updatePreferredVariant(
             packageName = packageName,
-            variant = normalized,
+            variant = normalizedVariant,
+            tokens = normalizedTokens,
+            glob = normalizedGlob,
+            pickedIndex = pickedIndex,
+            siblingCount = siblingCount?.takeIf { it > 0 },
         )
 
         // Re-run the update check so cached `latestAsset*` columns point
@@ -438,6 +503,17 @@ class InstalledAppsRepositoryImpl(
                     "re-check failed: ${e.message}"
             }
         }
+    }
+
+    override suspend fun clearPreferredVariant(packageName: String) {
+        setPreferredVariant(
+            packageName = packageName,
+            variant = null,
+            tokens = null,
+            glob = null,
+            pickedIndex = null,
+            siblingCount = null,
+        )
     }
 
     override suspend fun previewMatchingAssets(

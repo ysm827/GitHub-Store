@@ -54,6 +54,23 @@ interface AppsRepository {
          * than a fresh asset filename to extract from.
          */
         preferredAssetVariant: String? = null,
+        /**
+         * Pre-derived multi-layer fingerprint from a previous export.
+         * Takes precedence over deriving from [pickedAssetName] when
+         * non-null — preserves the exact identity layers the user
+         * pinned in their other install rather than recomputing from
+         * a possibly-different asset list.
+         */
+        preferredAssetTokens: String? = null,
+        assetGlobPattern: String? = null,
+        /**
+         * Zero-based index of the picked asset in the release's
+         * installable-asset list. Stored for the same-position fallback
+         * — when the resolver can't match any fingerprint layer in a
+         * fresh release but the new release has the same number of
+         * installable assets, this index is preferred.
+         */
+        pickedAssetIndex: Int? = null,
     )
 
     suspend fun exportApps(): String

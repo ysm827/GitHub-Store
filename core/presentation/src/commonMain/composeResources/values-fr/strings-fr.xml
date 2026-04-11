@@ -634,4 +634,12 @@
     <string name="variant_picker_pinned">Épinglée à : %1$s</string>
     <string name="variant_stale_hint">Variante changée — appuyez sur Mettre à jour pour choisir à nouveau</string>
     <string name="variant_label_inline">Variante : %1$s</string>
+    <string name="variant_picker_unpin">Désépingler</string>
+    <string name="variant_picker_pinned_badge">Épinglée</string>
+    <string name="variant_picker_open">Choisir la variante</string>
+    <string name="variant_picker_open_filter">Ajuster le filtre</string>
+    <string name="variant_first_pin_toast">Les futures mises à jour préféreront la variante %1$s. Modifiable à tout moment dans les paramètres de l\'application.</string>
+    <string name="variant_first_pin_toast_generic">Les futures mises à jour préféreront cette variante. Modifiable à tout moment dans les paramètres de l\'application.</string>
+    <string name="variant_unpinned_toast">Variante désépinglée. Les mises à jour utiliseront le sélecteur automatique.</string>
+    <string name="advanced_filter_variant_relation">Le filtre décide quels fichiers sont pris en compte. L\'épingle de variante décide lequel sera installé.</string>
 </resources>

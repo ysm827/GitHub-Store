@@ -157,18 +157,37 @@ class AppsRepositoryImpl(
         pickedAssetName: String?,
         pickedAssetSiblingCount: Int,
         preferredAssetVariant: String?,
+        preferredAssetTokens: String?,
+        assetGlobPattern: String?,
+        pickedAssetIndex: Int?,
     ) {
         val now = Clock.System.now().toEpochMilliseconds()
         val globalPreRelease = tweaksRepository.getIncludePreReleases().first()
         val normalizedFilter = assetFilterRegex?.trim()?.takeIf { it.isNotEmpty() }
-        // Direct tag (from import) wins over derivation from a filename
-        // (from the link sheet picker). Both fall back to null which
-        // means "no preference, use the platform auto-picker".
-        val resolvedVariant =
+        // Pre-derived fingerprint (from import) wins over re-deriving
+        // from the picked filename. Falls through to deriving fresh
+        // from the picked asset when there's nothing pre-computed.
+        val derivedVariant =
             preferredAssetVariant?.trim()?.takeIf { it.isNotEmpty() }
                 ?: pickedAssetName?.let {
                     AssetVariant.deriveFromPickedAsset(it, pickedAssetSiblingCount)
                 }
+
+        // Multi-layer fingerprint: when coming from import, we already
+        // have these stored from the prior install. When coming from
+        // the link sheet picker, derive them fresh from the picked
+        // asset's filename so all three identity layers are populated
+        // atomically with the rest of the row.
+        val freshFingerprint =
+            if (preferredAssetTokens == null && assetGlobPattern == null && pickedAssetName != null) {
+                AssetVariant.fingerprintFromPickedAsset(pickedAssetName, pickedAssetSiblingCount)
+            } else {
+                null
+            }
+        val resolvedTokens = preferredAssetTokens
+            ?: freshFingerprint?.tokens?.let { AssetVariant.serializeTokens(it) }
+        val resolvedGlob = assetGlobPattern ?: freshFingerprint?.glob
+        val resolvedSiblingCount = pickedAssetSiblingCount.takeIf { it > 0 }
 
         val installedApp =
             InstalledApp(
@@ -204,8 +223,12 @@ class AppsRepositoryImpl(
                 includePreReleases = globalPreRelease,
                 assetFilterRegex = normalizedFilter,
                 fallbackToOlderReleases = fallbackToOlderReleases,
-                preferredAssetVariant = resolvedVariant,
+                preferredAssetVariant = derivedVariant,
                 preferredVariantStale = false,
+                preferredAssetTokens = resolvedTokens,
+                assetGlobPattern = resolvedGlob,
+                pickedAssetIndex = pickedAssetIndex,
+                pickedAssetSiblingCount = resolvedSiblingCount,
             )
 
         appsRepository.saveInstalledApp(installedApp)
@@ -215,7 +238,7 @@ class AppsRepositoryImpl(
         val apps = appsRepository.getAllInstalledApps().first()
         val exported =
             ExportedAppList(
-                version = 3,
+                version = 4,
                 exportedAt = Clock.System.now().toEpochMilliseconds(),
                 apps =
                     apps.map { app ->
@@ -227,6 +250,10 @@ class AppsRepositoryImpl(
                             assetFilterRegex = app.assetFilterRegex,
                             fallbackToOlderReleases = app.fallbackToOlderReleases,
                             preferredAssetVariant = app.preferredAssetVariant,
+                            preferredAssetTokens = app.preferredAssetTokens,
+                            assetGlobPattern = app.assetGlobPattern,
+                            pickedAssetIndex = app.pickedAssetIndex,
+                            pickedAssetSiblingCount = app.pickedAssetSiblingCount,
                         )
                     },
             )
@@ -276,7 +303,11 @@ class AppsRepositoryImpl(
                     repoInfo = repoInfo,
                     assetFilterRegex = exportedApp.assetFilterRegex,
                     fallbackToOlderReleases = exportedApp.fallbackToOlderReleases,
+                    pickedAssetSiblingCount = exportedApp.pickedAssetSiblingCount ?: 0,
                     preferredAssetVariant = exportedApp.preferredAssetVariant,
+                    preferredAssetTokens = exportedApp.preferredAssetTokens,
+                    assetGlobPattern = exportedApp.assetGlobPattern,
+                    pickedAssetIndex = exportedApp.pickedAssetIndex,
                 )
                 imported++
             } catch (e: Exception) {

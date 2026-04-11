@@ -672,4 +672,12 @@
     <string name="variant_picker_pinned">Bloccata su: %1$s</string>
     <string name="variant_stale_hint">Variante cambiata — tocca Aggiorna per scegliere di nuovo</string>
     <string name="variant_label_inline">Variante: %1$s</string>
+    <string name="variant_picker_unpin">Sblocca</string>
+    <string name="variant_picker_pinned_badge">Bloccata</string>
+    <string name="variant_picker_open">Scegli variante</string>
+    <string name="variant_picker_open_filter">Modifica filtro</string>
+    <string name="variant_first_pin_toast">I prossimi aggiornamenti preferiranno la variante %1$s. Puoi modificarlo in qualsiasi momento dalle impostazioni dell\'app.</string>
+    <string name="variant_first_pin_toast_generic">I prossimi aggiornamenti preferiranno questa variante. Puoi modificarlo in qualsiasi momento dalle impostazioni dell\'app.</string>
+    <string name="variant_unpinned_toast">Variante sbloccata. Gli aggiornamenti useranno il selettore automatico.</string>
+    <string name="advanced_filter_variant_relation">Il filtro decide quali file vengono considerati. Il blocco della variante decide quale di essi viene installato.</string>
 </resources>

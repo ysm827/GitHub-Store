@@ -672,4 +672,12 @@
     <string name="variant_picker_pinned">পিন করা: %1$s</string>
     <string name="variant_stale_hint">ভ্যারিয়েন্ট পরিবর্তিত — আবার বাছাই করতে আপডেট ট্যাপ করুন</string>
     <string name="variant_label_inline">ভ্যারিয়েন্ট: %1$s</string>
+    <string name="variant_picker_unpin">আনপিন</string>
+    <string name="variant_picker_pinned_badge">পিন করা</string>
+    <string name="variant_picker_open">ভ্যারিয়েন্ট নির্বাচন</string>
+    <string name="variant_picker_open_filter">ফিল্টার সমন্বয়</string>
+    <string name="variant_first_pin_toast">ভবিষ্যতের আপডেটগুলি %1$s ভ্যারিয়েন্ট পছন্দ করবে। অ্যাপ সেটিংস থেকে যেকোনো সময় পরিবর্তন করুন।</string>
+    <string name="variant_first_pin_toast_generic">ভবিষ্যতের আপডেটগুলি এই ভ্যারিয়েন্ট পছন্দ করবে। অ্যাপ সেটিংস থেকে যেকোনো সময় পরিবর্তন করুন।</string>
+    <string name="variant_unpinned_toast">ভ্যারিয়েন্ট আনপিন করা হয়েছে। আপডেটগুলি স্বয়ংক্রিয় নির্বাচক ব্যবহার করবে।</string>
+    <string name="advanced_filter_variant_relation">ফিল্টার নির্ধারণ করে কোন অ্যাসেটগুলি বিবেচনা করা হবে। ভ্যারিয়েন্ট পিন নির্ধারণ করে সেগুলির কোনটি ইনস্টল হবে।</string>
 </resources>
