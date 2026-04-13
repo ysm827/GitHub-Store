@@ -4,7 +4,13 @@
       "Bash(grep -r \"\\\\.FLATPAK\\\\|Flatpak\\\\|flatpak\" . --include=*.kt)",
       "Bash(./gradlew :composeApp:assembleDebug)",
       "Bash(./gradlew :composeApp:jvmJar)",
-      "Bash(./gradlew :composeApp:assembleDebug :composeApp:jvmJar)"
+      "Bash(./gradlew :composeApp:assembleDebug :composeApp:jvmJar)",
+      "Bash(./gradlew :core:data:compileDebugKotlinAndroid :core:domain:compileDebugKotlinAndroid)",
+      "Bash(./gradlew :feature:details:presentation:compileDebugKotlinAndroid)",
+      "Bash(./gradlew :feature:apps:presentation:compileDebugKotlinAndroid)",
+      "Bash(./gradlew :core:data:compileDebugKotlinAndroid)",
+      "Bash(./gradlew :core:data:compileDebugKotlinAndroid :feature:details:presentation:compileDebugKotlinAndroid :feature:apps:presentation:compileDebugKotlinAndroid)",
+      "Bash(./gradlew :composeApp:compileDebugKotlinAndroid :core:data:compileDebugKotlinAndroid :core:domain:compileDebugKotlinAndroid :feature:details:presentation:compileDebugKotlinAndroid :feature:apps:presentation:compileDebugKotlinAndroid)"
     ]
   }
 }

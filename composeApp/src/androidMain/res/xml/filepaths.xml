@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Public Downloads/GitHub Store folder (visible in file managers) -->
-    <external-path
-        name="ghs_downloads"
-        path="Download/GitHub Store/" />
-
-    <!-- Legacy app-private downloads (for migration) -->
+    <!-- App-private downloads (no permissions required) -->
     <external-files-path
-        name="ghs_legacy_downloads"
-        path="/" />
+        name="ghs_downloads"
+        path="Download/" />
+
+    <!-- Internal fallback when external files dir is unavailable -->
+    <files-path
+        name="ghs_internal_downloads"
+        path="downloads/" />
 
     <cache-path
         name="exports"

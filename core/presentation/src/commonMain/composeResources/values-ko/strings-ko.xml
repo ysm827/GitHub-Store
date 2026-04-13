@@ -676,4 +676,7 @@
     <string name="variant_first_pin_toast_generic">앞으로의 업데이트는 이 변형을 우선 사용합니다. 앱 설정에서 언제든지 변경할 수 있습니다.</string>
     <string name="variant_unpinned_toast">변형 고정이 해제되었습니다. 업데이트는 자동 선택을 사용합니다.</string>
     <string name="advanced_filter_variant_relation">필터는 어떤 에셋을 고려할지 결정합니다. 변형 고정은 그중 무엇이 설치될지 결정합니다.</string>
+    <string name="install">설치</string>
+    <string name="ready_to_install">설치 준비 완료</string>
+    <string name="install_ready">설치 (준비됨)</string>
 </resources>

@@ -105,6 +105,28 @@ interface InstalledAppsRepository {
     suspend fun clearPreferredVariant(packageName: String)
 
     /**
+     * Sets (or clears) the path + version + asset name of a
+     * downloaded-but-not-yet-installed asset for [packageName].
+     *
+     * Used by `DefaultDownloadOrchestrator` when an
+     * `InstallPolicy.InstallWhileForeground` download completes
+     * after the foreground screen has been destroyed — the file is
+     * parked, these three columns are set, and the apps list shows
+     * a "Ready to install" row. The Details screen also uses
+     * [version] + [assetName] to detect "the parked file matches
+     * the currently-selected release" and skip re-downloading.
+     *
+     * Pass `null` for all three to clear (after a successful install
+     * or after the user dismissed the row).
+     */
+    suspend fun setPendingInstallFilePath(
+        packageName: String,
+        path: String?,
+        version: String? = null,
+        assetName: String? = null,
+    )
+
+    /**
      * Dry-run helper for the per-app advanced settings sheet. Fetches a
      * window of releases for [owner]/[repo] (honouring [includePreReleases])
      * and returns the assets in the most-recent release that match

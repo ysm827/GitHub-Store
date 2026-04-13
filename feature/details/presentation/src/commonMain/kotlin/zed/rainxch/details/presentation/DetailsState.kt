@@ -75,4 +75,24 @@ data class DetailsState(
                 ReleaseCategory.PRE_RELEASE -> allReleases.filter { it.isPrerelease }
                 ReleaseCategory.ALL -> allReleases
             }
+
+    /**
+     * True when the currently-tracked app has a *parked* install file
+     * that matches the user's current selection (release tag + asset
+     * name). The install button can short-circuit the download phase
+     * and dispatch the dialog/install flow on the parked file directly.
+     *
+     * This is the data-layer match — the VM also re-checks the file
+     * exists on disk before actually using it (in [parkedFilePathIfMatches]).
+     */
+    val isPendingInstallReady: Boolean
+        get() {
+            val app = installedApp ?: return false
+            val parkedVersion = app.pendingInstallVersion ?: return false
+            val parkedAsset = app.pendingInstallAssetName ?: return false
+            if (app.pendingInstallFilePath.isNullOrBlank()) return false
+            val tag = selectedRelease?.tagName ?: return false
+            val assetName = primaryAsset?.name ?: return false
+            return parkedVersion == tag && parkedAsset == assetName
+        }
 }

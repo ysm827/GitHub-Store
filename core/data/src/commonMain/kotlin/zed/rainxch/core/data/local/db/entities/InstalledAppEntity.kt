@@ -121,4 +121,36 @@ data class InstalledAppEntity(
      * Pairs with [pickedAssetIndex] for same-position fallback.
      */
     val pickedAssetSiblingCount: Int? = null,
+    /**
+     * Absolute path to a downloaded but not-yet-installed APK / asset.
+     *
+     * Set by `DefaultDownloadOrchestrator` when an
+     * `InstallPolicy.InstallWhileForeground` download finishes after
+     * the foreground screen has been destroyed (the user navigated
+     * away mid-download). The apps list shows a "Ready to install"
+     * row with a one-tap install action when this is non-null.
+     *
+     * Cleared by the orchestrator on successful install or by the
+     * user dismissing the row.
+     *
+     * Survives process restarts: the file lives on disk and the
+     * column points back at it. Both are cleaned up if the file is
+     * missing on next read.
+     */
+    val pendingInstallFilePath: String? = null,
+    /**
+     * Release tag of the version represented by [pendingInstallFilePath].
+     * Used by the Details screen to detect "the parked file matches
+     * the currently-selected release" — when both [pendingInstallVersion]
+     * and [pendingInstallAssetName] match the user's selection, the
+     * install button skips the download phase and dispatches the
+     * existing install dialog flow on the parked file directly.
+     */
+    val pendingInstallVersion: String? = null,
+    /**
+     * Asset filename (the original, not the scoped form) of the
+     * parked file. Pairs with [pendingInstallVersion] for
+     * Details-screen "ready to install" detection.
+     */
+    val pendingInstallAssetName: String? = null,
 )

@@ -105,6 +105,8 @@ import zed.rainxch.core.presentation.utils.ObserveAsEvents
 import zed.rainxch.githubstore.core.presentation.res.Res
 import zed.rainxch.githubstore.core.presentation.res.add_by_link
 import zed.rainxch.githubstore.core.presentation.res.advanced_settings_open
+import zed.rainxch.githubstore.core.presentation.res.install
+import zed.rainxch.githubstore.core.presentation.res.ready_to_install
 import zed.rainxch.githubstore.core.presentation.res.variant_label_inline
 import zed.rainxch.githubstore.core.presentation.res.variant_picker_open
 import zed.rainxch.githubstore.core.presentation.res.variant_stale_hint
@@ -542,6 +544,9 @@ fun AppsScreen(
                                                 ),
                                             )
                                         },
+                                        onInstallPendingClick = {
+                                            onAction(AppsAction.OnInstallPendingApp(appItem.installedApp))
+                                        },
                                         modifier =
                                             Modifier
                                                 .then(
@@ -635,6 +640,7 @@ fun AppItemCard(
     onTogglePreReleases: (Boolean) -> Unit,
     onAdvancedSettingsClick: () -> Unit,
     onPickVariantClick: () -> Unit,
+    onInstallPendingClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val app = appItem.installedApp
@@ -703,6 +709,18 @@ fun AppItemCard(
                     }
 
                     when {
+                        // Highest priority: a download finished while
+                        // the user wasn't watching, the file is on disk
+                        // and ready to be installed with one tap.
+                        app.pendingInstallFilePath != null -> {
+                            Text(
+                                text = stringResource(Res.string.ready_to_install),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                        }
+
                         app.isPendingInstall -> {
                             Text(
                                 text = stringResource(Res.string.pending_install),
@@ -1000,7 +1018,26 @@ fun AppItemCard(
                     }
 
                     else -> {
-                        if (app.isUpdateAvailable && !app.isPendingInstall) {
+                        if (app.pendingInstallFilePath != null) {
+                            // One-tap install for a deferred download.
+                            // Bypasses the download phase entirely —
+                            // the file is already on disk.
+                            Button(
+                                onClick = onInstallPendingClick,
+                                modifier = Modifier.weight(1f),
+                                enabled = !isBusy,
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Update,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp),
+                                )
+                                Spacer(Modifier.width(4.dp))
+                                Text(
+                                    text = stringResource(Res.string.install),
+                                )
+                            }
+                        } else if (app.isUpdateAvailable && !app.isPendingInstall) {
                             Button(
                                 onClick = onUpdateClick,
                                 modifier = Modifier.weight(1f),

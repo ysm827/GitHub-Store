@@ -689,4 +689,8 @@
     <string name="variant_first_pin_toast_generic">Future updates will prefer this variant. Change this anytime in app settings.</string>
     <string name="variant_unpinned_toast">Variant unpinned. Updates will use the automatic picker.</string>
     <string name="advanced_filter_variant_relation">The filter decides which assets are considered. The variant pin decides which of those assets gets installed.</string>
+    <!-- Pending install (deferred download) -->
+    <string name="install">Install</string>
+    <string name="ready_to_install">Ready to install</string>
+    <string name="install_ready">Install (ready)</string>
 </resources>

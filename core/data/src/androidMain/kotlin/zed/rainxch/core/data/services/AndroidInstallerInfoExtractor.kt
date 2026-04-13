@@ -19,28 +19,13 @@ class AndroidInstallerInfoExtractor(
         withContext(Dispatchers.IO) {
             try {
                 val packageManager = context.packageManager
-                val flags =
-                    PackageManager.GET_META_DATA or
-                        PackageManager.GET_ACTIVITIES or
-                        GET_SIGNING_CERTIFICATES
 
-                val packageInfo =
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                        packageManager.getPackageArchiveInfo(
-                            filePath,
-                            PackageManager.PackageInfoFlags.of(flags.toLong()),
-                        )
-                    } else {
-                        @Suppress("DEPRECATION")
-                        packageManager.getPackageArchiveInfo(filePath, flags)
-                    }
+                val packageInfo = parseApk(packageManager, filePath)
 
                 if (packageInfo == null) {
                     Logger.e {
                         "Failed to parse APK at $filePath, file exists: ${
-                            File(
-                                filePath,
-                            ).exists()
+                            File(filePath).exists()
                         }, size: ${File(filePath).length()}"
                     }
                     return@withContext null
@@ -58,36 +43,8 @@ class AndroidInstallerInfoExtractor(
                         @Suppress("DEPRECATION")
                         packageInfo.versionCode.toLong()
                     }
-                val fingerprint: String? =
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                        val sigInfo = packageInfo.signingInfo
-                        val certs =
-                            if (sigInfo?.hasMultipleSigners() == true) {
-                                sigInfo.apkContentsSigners
-                            } else {
-                                sigInfo?.signingCertificateHistory
-                            }
-                        certs?.firstOrNull()?.toByteArray()?.let { certBytes ->
-                            MessageDigest
-                                .getInstance("SHA-256")
-                                .digest(certBytes)
-                                .joinToString(":") { "%02X".format(it) }
-                        }
-                    } else {
-                        @Suppress("DEPRECATION")
-                        val legacyInfo =
-                            packageManager.getPackageArchiveInfo(
-                                filePath,
-                                PackageManager.GET_SIGNATURES,
-                            )
-                        @Suppress("DEPRECATION")
-                        legacyInfo?.signatures?.firstOrNull()?.toByteArray()?.let { certBytes ->
-                            MessageDigest
-                                .getInstance("SHA-256")
-                                .digest(certBytes)
-                                .joinToString(":") { "%02X".format(it) }
-                        }
-                    }
+
+                val fingerprint = extractSigningFingerprint(packageManager, packageInfo, filePath)
 
                 ApkPackageInfo(
                     appName = appName,
@@ -101,4 +58,122 @@ class AndroidInstallerInfoExtractor(
                 null
             }
         }
+
+    /**
+     * Tries to parse the APK with full flags first (metadata + signing).
+     * If that fails, retries with minimal flags since some APKs / Android
+     * versions choke on GET_SIGNING_CERTIFICATES combined with other flags.
+     */
+    private fun parseApk(
+        packageManager: PackageManager,
+        filePath: String,
+    ): android.content.pm.PackageInfo? {
+        val fullFlags =
+            PackageManager.GET_META_DATA or
+                PackageManager.GET_ACTIVITIES or
+                GET_SIGNING_CERTIFICATES
+
+        val full = getPackageArchiveInfoCompat(packageManager, filePath, fullFlags)
+        if (full != null) return full
+
+        Logger.w {
+            "Full-flag parse failed for $filePath, retrying with minimal flags"
+        }
+
+        // Retry without signing — the fingerprint will be extracted
+        // separately in extractSigningFingerprint.
+        val minimalFlags = PackageManager.GET_META_DATA
+        val minimal = getPackageArchiveInfoCompat(packageManager, filePath, minimalFlags)
+        if (minimal != null) return minimal
+
+        Logger.w {
+            "Minimal-flag parse also failed for $filePath, retrying with zero flags"
+        }
+
+        return getPackageArchiveInfoCompat(packageManager, filePath, 0)
+    }
+
+    private fun getPackageArchiveInfoCompat(
+        packageManager: PackageManager,
+        filePath: String,
+        flags: Int,
+    ): android.content.pm.PackageInfo? =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            packageManager.getPackageArchiveInfo(
+                filePath,
+                PackageManager.PackageInfoFlags.of(flags.toLong()),
+            )
+        } else {
+            @Suppress("DEPRECATION")
+            packageManager.getPackageArchiveInfo(filePath, flags)
+        }
+
+    /**
+     * Extracts the signing fingerprint from an already-parsed PackageInfo
+     * if available, otherwise does a separate lightweight parse with only
+     * the signing flag.
+     */
+    private fun extractSigningFingerprint(
+        packageManager: PackageManager,
+        packageInfo: android.content.pm.PackageInfo,
+        filePath: String,
+    ): String? {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            // Try from the already-parsed info first (works when
+            // the full-flag parse succeeded).
+            val sigInfo = packageInfo.signingInfo
+            if (sigInfo != null) {
+                val cert =
+                    if (sigInfo.hasMultipleSigners()) {
+                        sigInfo.apkContentsSigners?.firstOrNull()
+                    } else {
+                        // History is oldest→newest; last entry is the
+                        // current signer after key rotation.
+                        sigInfo.signingCertificateHistory?.lastOrNull()
+                    }
+                cert?.toByteArray()?.let { certBytes ->
+                    return sha256Fingerprint(certBytes)
+                }
+            }
+
+            // Signing info missing (minimal-flag fallback path) —
+            // do a separate parse with only the signing flag.
+            val sigOnly = getPackageArchiveInfoCompat(
+                packageManager,
+                filePath,
+                GET_SIGNING_CERTIFICATES,
+            )
+            val fallbackSigInfo = sigOnly?.signingInfo
+            if (fallbackSigInfo != null) {
+                val certs =
+                    if (fallbackSigInfo.hasMultipleSigners()) {
+                        fallbackSigInfo.apkContentsSigners
+                    } else {
+                        fallbackSigInfo.signingCertificateHistory
+                    }
+                certs?.firstOrNull()?.toByteArray()?.let { certBytes ->
+                    return sha256Fingerprint(certBytes)
+                }
+            }
+
+            return null
+        } else {
+            @Suppress("DEPRECATION")
+            val legacyInfo =
+                packageManager.getPackageArchiveInfo(
+                    filePath,
+                    PackageManager.GET_SIGNATURES,
+                )
+            @Suppress("DEPRECATION")
+            return legacyInfo?.signatures?.firstOrNull()?.toByteArray()?.let { certBytes ->
+                sha256Fingerprint(certBytes)
+            }
+        }
+    }
+
+    private fun sha256Fingerprint(certBytes: ByteArray): String =
+        MessageDigest
+            .getInstance("SHA-256")
+            .digest(certBytes)
+            .joinToString(":") { "%02X".format(it) }
 }

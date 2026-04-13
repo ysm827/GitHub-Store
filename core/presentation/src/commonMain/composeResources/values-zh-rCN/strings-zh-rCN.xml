@@ -642,4 +642,7 @@
     <string name="variant_first_pin_toast_generic">将来的更新将优先使用此变体。可以随时在应用设置中更改。</string>
     <string name="variant_unpinned_toast">变体固定已取消。更新将使用自动选择器。</string>
     <string name="advanced_filter_variant_relation">筛选器决定考虑哪些资源。变体固定决定其中哪一个被安装。</string>
+    <string name="install">安装</string>
+    <string name="ready_to_install">准备安装</string>
+    <string name="install_ready">安装（已就绪）</string>
 </resources>

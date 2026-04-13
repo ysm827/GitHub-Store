@@ -6,6 +6,13 @@ sealed interface DeepLinkDestination {
         val repo: String,
     ) : DeepLinkDestination
 
+    /**
+     * Deep link to the apps tab. Used by the pending-install
+     * notification to bring the user back to the row where they can
+     * complete a deferred install.
+     */
+    data object Apps : DeepLinkDestination
+
     data object None : DeepLinkDestination
 }
 
@@ -52,6 +59,14 @@ object DeepLinkParser {
 
     fun parse(uri: String): DeepLinkDestination {
         return when {
+            // Pending-install notification opens the apps tab. No path
+            // segments — the deferred install is keyed by package name
+            // on the row itself, so the link only needs to bring the
+            // user to the right tab.
+            uri == "githubstore://apps" || uri == "githubstore://apps/" || uri.startsWith("githubstore://apps?") -> {
+                DeepLinkDestination.Apps
+            }
+
             uri.startsWith("githubstore://repo/") -> {
                 val path = uri.removePrefix("githubstore://repo/")
                 val decoded = urlDecode(path)

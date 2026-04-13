@@ -648,4 +648,7 @@
     <string name="variant_first_pin_toast_generic">Будущие обновления будут предпочитать этот вариант. Изменить это можно в любое время в настройках приложения.</string>
     <string name="variant_unpinned_toast">Вариант откреплён. Обновления будут использовать автоматический выбор.</string>
     <string name="advanced_filter_variant_relation">Фильтр определяет, какие файлы рассматриваются. Закреплённый вариант определяет, какой из них будет установлен.</string>
+    <string name="install">Установить</string>
+    <string name="ready_to_install">Готово к установке</string>
+    <string name="install_ready">Установить (готово)</string>
 </resources>

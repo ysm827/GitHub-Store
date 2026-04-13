@@ -14,6 +14,7 @@ import zed.rainxch.core.data.services.AndroidInstaller
 import zed.rainxch.core.data.services.AndroidInstallerInfoExtractor
 import zed.rainxch.core.data.services.AndroidLocalizationManager
 import zed.rainxch.core.data.services.AndroidPackageMonitor
+import zed.rainxch.core.data.services.AndroidPendingInstallNotifier
 import zed.rainxch.core.data.services.AndroidUpdateScheduleManager
 import zed.rainxch.core.data.services.FileLocationsProvider
 import zed.rainxch.core.data.services.LocalizationManager
@@ -28,6 +29,7 @@ import zed.rainxch.core.domain.network.Downloader
 import zed.rainxch.core.domain.system.Installer
 import zed.rainxch.core.domain.system.InstallerStatusProvider
 import zed.rainxch.core.domain.system.PackageMonitor
+import zed.rainxch.core.domain.system.PendingInstallNotifier
 import zed.rainxch.core.domain.system.UpdateScheduleManager
 import zed.rainxch.core.domain.utils.AppLauncher
 import zed.rainxch.core.domain.utils.BrowserHelper
@@ -81,6 +83,10 @@ actual val corePlatformModule =
 
         single<FileLocationsProvider> {
             AndroidFileLocationsProvider(context = get())
+        }
+
+        single<PendingInstallNotifier> {
+            AndroidPendingInstallNotifier(context = androidContext())
         }
 
         single<PackageMonitor> {

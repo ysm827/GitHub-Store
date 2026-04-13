@@ -680,4 +680,7 @@
     <string name="variant_first_pin_toast_generic">ভবিষ্যতের আপডেটগুলি এই ভ্যারিয়েন্ট পছন্দ করবে। অ্যাপ সেটিংস থেকে যেকোনো সময় পরিবর্তন করুন।</string>
     <string name="variant_unpinned_toast">ভ্যারিয়েন্ট আনপিন করা হয়েছে। আপডেটগুলি স্বয়ংক্রিয় নির্বাচক ব্যবহার করবে।</string>
     <string name="advanced_filter_variant_relation">ফিল্টার নির্ধারণ করে কোন অ্যাসেটগুলি বিবেচনা করা হবে। ভ্যারিয়েন্ট পিন নির্ধারণ করে সেগুলির কোনটি ইনস্টল হবে।</string>
+    <string name="install">ইনস্টল</string>
+    <string name="ready_to_install">ইনস্টলের জন্য প্রস্তুত</string>
+    <string name="install_ready">ইনস্টল (প্রস্তুত)</string>
 </resources>

@@ -648,4 +648,7 @@
     <string name="variant_first_pin_toast_generic">Przyszłe aktualizacje będą preferować ten wariant. Możesz to zmienić w dowolnym momencie w ustawieniach aplikacji.</string>
     <string name="variant_unpinned_toast">Wariant odpięty. Aktualizacje będą używać automatycznego selektora.</string>
     <string name="advanced_filter_variant_relation">Filtr decyduje, które pliki są brane pod uwagę. Przypięty wariant decyduje, który z nich zostanie zainstalowany.</string>
+    <string name="install">Zainstaluj</string>
+    <string name="ready_to_install">Gotowe do instalacji</string>
+    <string name="install_ready">Zainstaluj (gotowe)</string>
 </resources>

@@ -678,4 +678,7 @@
     <string name="variant_first_pin_toast_generic">Sonraki güncellemeler bu varyantı tercih edecek. Bunu uygulama ayarlarından istediğiniz zaman değiştirebilirsiniz.</string>
     <string name="variant_unpinned_toast">Varyant sabitlemesi kaldırıldı. Güncellemeler otomatik seçiciyi kullanacak.</string>
     <string name="advanced_filter_variant_relation">Filtre hangi dosyaların dikkate alınacağına karar verir. Varyant sabitlemesi bunlardan hangisinin yükleneceğine karar verir.</string>
+    <string name="install">Yükle</string>
+    <string name="ready_to_install">Yüklemeye hazır</string>
+    <string name="install_ready">Yükle (hazır)</string>
 </resources>

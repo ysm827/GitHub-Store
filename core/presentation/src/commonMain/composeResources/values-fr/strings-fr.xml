@@ -642,4 +642,7 @@
     <string name="variant_first_pin_toast_generic">Les futures mises à jour préféreront cette variante. Modifiable à tout moment dans les paramètres de l\'application.</string>
     <string name="variant_unpinned_toast">Variante désépinglée. Les mises à jour utiliseront le sélecteur automatique.</string>
     <string name="advanced_filter_variant_relation">Le filtre décide quels fichiers sont pris en compte. L\'épingle de variante décide lequel sera installé.</string>
+    <string name="install">Installer</string>
+    <string name="ready_to_install">Prêt à installer</string>
+    <string name="install_ready">Installer (prêt)</string>
 </resources>

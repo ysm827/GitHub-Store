@@ -516,6 +516,20 @@ class InstalledAppsRepositoryImpl(
         )
     }
 
+    override suspend fun setPendingInstallFilePath(
+        packageName: String,
+        path: String?,
+        version: String?,
+        assetName: String?,
+    ) {
+        installedAppsDao.updatePendingInstallFilePath(
+            packageName = packageName,
+            path = path,
+            version = version,
+            assetName = assetName,
+        )
+    }
+
     override suspend fun previewMatchingAssets(
         owner: String,
         repo: String,

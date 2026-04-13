@@ -90,4 +90,26 @@ data class InstalledApp(
      * Pairs with [pickedAssetIndex] for the same-position fallback.
      */
     val pickedAssetSiblingCount: Int? = null,
+    /**
+     * Absolute path to a downloaded asset that's waiting for the user
+     * to confirm install. Non-null means: the orchestrator finished
+     * the download in `InstallWhileForeground` mode but the foreground
+     * screen had gone away by then, so the bytes are parked and the
+     * apps list shows a "ready to install" row.
+     *
+     * Cleared by the orchestrator after a successful install or when
+     * the user dismisses the row.
+     */
+    val pendingInstallFilePath: String? = null,
+    /**
+     * Release tag of the version represented by [pendingInstallFilePath].
+     * Used by Details to detect "the parked file matches the
+     * currently-selected release" and skip re-downloading on install.
+     */
+    val pendingInstallVersion: String? = null,
+    /**
+     * Original (unscoped) asset filename of the parked file. Pairs
+     * with [pendingInstallVersion] for the Details-screen match.
+     */
+    val pendingInstallAssetName: String? = null,
 )

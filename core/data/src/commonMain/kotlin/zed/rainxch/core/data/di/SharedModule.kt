@@ -10,6 +10,7 @@ import kotlinx.coroutines.withTimeout
 import org.koin.dsl.module
 import zed.rainxch.core.data.cache.CacheManager
 import zed.rainxch.core.data.data_source.TokenStore
+import zed.rainxch.core.data.services.DefaultDownloadOrchestrator
 import zed.rainxch.core.data.data_source.impl.DefaultTokenStore
 import zed.rainxch.core.data.local.db.AppDatabase
 import zed.rainxch.core.data.local.db.dao.CacheDao
@@ -38,6 +39,7 @@ import zed.rainxch.core.domain.logging.GitHubStoreLogger
 import zed.rainxch.core.domain.model.Platform
 import zed.rainxch.core.domain.model.ProxyConfig
 import zed.rainxch.core.domain.network.ProxyTester
+import zed.rainxch.core.domain.system.DownloadOrchestrator
 import zed.rainxch.core.domain.repository.AuthenticationState
 import zed.rainxch.core.domain.repository.FavouritesRepository
 import zed.rainxch.core.domain.repository.InstalledAppsRepository
@@ -134,6 +136,19 @@ val coreModule =
 
         single<CacheManager> {
             CacheManager(cacheDao = get())
+        }
+
+        // Application-scoped download / install orchestrator. Lives
+        // for the process lifetime so downloads survive screen
+        // navigation. ViewModels are observers, never owners.
+        single<DownloadOrchestrator> {
+            DefaultDownloadOrchestrator(
+                downloader = get(),
+                installer = get(),
+                installedAppsRepository = get(),
+                pendingInstallNotifier = get(),
+                appScope = get(),
+            )
         }
     }
 

@@ -61,6 +61,7 @@ import zed.rainxch.githubstore.core.presentation.res.cancel_download
 import zed.rainxch.githubstore.core.presentation.res.checking_attestation
 import zed.rainxch.githubstore.core.presentation.res.downloading
 import zed.rainxch.githubstore.core.presentation.res.install_latest
+import zed.rainxch.githubstore.core.presentation.res.install_ready
 import zed.rainxch.githubstore.core.presentation.res.install_version
 import zed.rainxch.githubstore.core.presentation.res.installing
 import zed.rainxch.githubstore.core.presentation.res.not_available
@@ -234,6 +235,15 @@ fun SmartInstallButton(
         when {
             !enabled && primaryAsset == null -> {
                 stringResource(Res.string.not_available)
+            }
+
+            // Highest priority: a previously-deferred download is
+            // already on disk and matches the current selection.
+            // Tell the user they can install in one tap, no
+            // re-download. The actual short-circuit lives in
+            // DetailsViewModel.installAsset.
+            state.isPendingInstallReady -> {
+                stringResource(Res.string.install_ready)
             }
 
             isUpdateAvailable -> {

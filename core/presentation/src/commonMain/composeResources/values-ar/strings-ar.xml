@@ -681,4 +681,7 @@
     <string name="variant_first_pin_toast_generic">سوف تفضل التحديثات المستقبلية هذا النوع. غيّر هذا في أي وقت من إعدادات التطبيق.</string>
     <string name="variant_unpinned_toast">تم إلغاء تثبيت النوع. ستستخدم التحديثات المنتقي التلقائي.</string>
     <string name="advanced_filter_variant_relation">يحدد المرشّح الملفات التي يتم النظر فيها. يحدد تثبيت النوع أيها سيتم تثبيته.</string>
+    <string name="install">تثبيت</string>
+    <string name="ready_to_install">جاهز للتثبيت</string>
+    <string name="install_ready">تثبيت (جاهز)</string>
 </resources>

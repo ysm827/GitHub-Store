@@ -34,8 +34,13 @@ import zed.rainxch.core.domain.repository.InstalledAppsRepository
 import zed.rainxch.core.domain.repository.SeenReposRepository
 import zed.rainxch.core.domain.repository.StarredRepository
 import zed.rainxch.core.domain.repository.TweaksRepository
+import zed.rainxch.core.domain.system.DownloadOrchestrator
+import zed.rainxch.core.domain.system.DownloadSpec
+import zed.rainxch.core.domain.system.DownloadStage as OrchestratorStage
 import zed.rainxch.core.domain.system.InstallOutcome
+import zed.rainxch.core.domain.system.InstallPolicy
 import zed.rainxch.core.domain.system.Installer
+import zed.rainxch.core.domain.model.InstallerType
 import zed.rainxch.core.domain.system.PackageMonitor
 import zed.rainxch.core.domain.use_cases.SyncInstalledAppsUseCase
 import zed.rainxch.core.domain.util.AssetVariant
@@ -103,14 +108,13 @@ class DetailsViewModel(
     private val seenReposRepository: SeenReposRepository,
     private val installationManager: InstallationManager,
     private val attestationVerifier: AttestationVerifier,
+    private val downloadOrchestrator: DownloadOrchestrator,
 ) : ViewModel() {
     private var hasLoadedInitialData = false
     private var currentDownloadJob: Job? = null
     private var currentAssetName: String? = null
     private var aboutTranslationJob: Job? = null
     private var whatsNewTranslationJob: Job? = null
-
-    private var cachedDownloadAssetName: String? = null
 
     private val _state = MutableStateFlow(DetailsState())
     val state =
@@ -900,9 +904,19 @@ class DetailsViewModel(
         currentDownloadJob?.cancel()
         currentDownloadJob = null
 
+        val packageKey = orchestratorKey()
+        viewModelScope.launch {
+            try {
+                downloadOrchestrator.cancel(packageKey)
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (t: Throwable) {
+                logger.error("Failed to cancel orchestrator download: ${t.message}")
+            }
+        }
+
         val assetName = currentAssetName
         if (assetName != null) {
-            cachedDownloadAssetName = assetName
             val releaseTag = _state.value.selectedRelease?.tagName ?: ""
             val totalSize = _state.value.totalBytes ?: _state.value.downloadedBytes
             appendLog(
@@ -911,7 +925,7 @@ class DetailsViewModel(
                 size = totalSize,
                 result = LogResult.Cancelled,
             )
-            logger.debug("Download cancelled – keeping file for potential reuse: $assetName")
+            logger.debug("Download cancelled via orchestrator: $assetName")
         }
 
         currentAssetName = null
@@ -1034,6 +1048,29 @@ class DetailsViewModel(
         }
     }
 
+    /**
+     * Entry point for "download + install" from the install button.
+     *
+     * Hands the actual download off to [downloadOrchestrator] (so it
+     * survives this screen being destroyed) and then observes the
+     * orchestrator's state to mirror progress into [DetailsState] and
+     * to dispatch the install dialog flow when bytes are on disk.
+     *
+     * Install policy is decided by installer type:
+     *  - **Shizuku**: [InstallPolicy.AlwaysInstall] — orchestrator
+     *    runs the install in its own scope. The user gets a silent
+     *    install whether they stay on this screen or not. The
+     *    PackageEventReceiver picks up `PACKAGE_REPLACED` and the
+     *    installed-apps DB syncs without further work from the VM.
+     *  - **Regular installer**: [InstallPolicy.InstallWhileForeground]
+     *    — orchestrator parks the file at `AwaitingInstall` and the
+     *    foreground VM (this one) runs the existing dialog flow
+     *    (validation → fingerprint check → installer.install → DB
+     *    save). If the screen leaves before bytes are done, the
+     *    VM's `onCleared` calls [DownloadOrchestrator.downgradeToDeferred],
+     *    the orchestrator notifies the user, and the apps row picks
+     *    up the deferred install.
+     */
     private fun installAsset(
         downloadUrl: String,
         assetName: String,
@@ -1041,26 +1078,132 @@ class DetailsViewModel(
         releaseTag: String,
         isUpdate: Boolean = false,
     ) {
+        // Cancel the existing observation job (if any) — but not the
+        // orchestrator entry itself. A user re-tapping install for a
+        // different asset should preempt the *previous* observer, not
+        // the in-flight download (the orchestrator dedupes by
+        // package name).
         currentDownloadJob?.cancel()
+        val packageKey = orchestratorKey()
+        val asset = _state.value.primaryAsset
+        val repository = _state.value.repository
+        if (asset == null || repository == null) {
+            logger.warn("installAsset called with missing primaryAsset/repository")
+            return
+        }
+        currentAssetName = assetName
+
+        // ────────────────────────────────────────────────────────
+        // SHORT-CIRCUIT: parked file matches what the user picked
+        // ────────────────────────────────────────────────────────
+        // If the user already deferred a download for this exact
+        // (releaseTag, assetName) pair (e.g. they navigated away
+        // from Details mid-download, the file got parked, and now
+        // they're back), skip the orchestrator entirely and
+        // dispatch the existing install dialog flow on the parked
+        // file directly. Saves the network round-trip and the
+        // disk space of a duplicate download.
+        val parkedFilePath = parkedFilePathIfMatches(releaseTag, assetName)
+        if (parkedFilePath != null) {
+            logger.debug("Reusing parked file for $releaseTag / $assetName")
+            currentDownloadJob =
+                viewModelScope.launch {
+                    try {
+                        appendLog(
+                            assetName = assetName,
+                            size = sizeBytes,
+                            tag = releaseTag,
+                            result = LogResult.Downloaded,
+                        )
+                        installAsset(
+                            isUpdate = isUpdate,
+                            filePath = parkedFilePath,
+                            assetName = assetName,
+                            downloadUrl = downloadUrl,
+                            sizeBytes = sizeBytes,
+                            releaseTag = releaseTag,
+                        )
+                    } catch (e: kotlinx.coroutines.CancellationException) {
+                        throw e
+                    } catch (t: Throwable) {
+                        logger.error("Install of parked file failed: ${t.message}")
+                        _state.value =
+                            _state.value.copy(
+                                downloadStage = DownloadStage.IDLE,
+                                installError = t.message,
+                            )
+                        currentAssetName = null
+                        appendLog(
+                            assetName = assetName,
+                            size = sizeBytes,
+                            tag = releaseTag,
+                            result = Error(t.message),
+                        )
+                    }
+                }
+            return
+        }
+
+        appendLog(
+            assetName = assetName,
+            size = sizeBytes,
+            tag = releaseTag,
+            result =
+                if (isUpdate) {
+                    LogResult.UpdateStarted
+                } else {
+                    LogResult.DownloadStarted
+                },
+        )
+
         currentDownloadJob =
             viewModelScope.launch {
                 try {
-                    val filePath: String =
-                        downloadAsset(
-                            assetName = assetName,
-                            sizeBytes = sizeBytes,
-                            releaseTag = releaseTag,
-                            isUpdate = isUpdate,
-                            downloadUrl = downloadUrl,
-                        ) ?: return@launch
+                    val installerType =
+                        try {
+                            tweaksRepository.getInstallerType().first()
+                        } catch (e: kotlinx.coroutines.CancellationException) {
+                            throw e
+                        } catch (e: Exception) {
+                            InstallerType.DEFAULT
+                        }
 
-                    installAsset(
-                        isUpdate = isUpdate,
-                        filePath = filePath,
-                        assetName = assetName,
+                    val policy =
+                        when (installerType) {
+                            InstallerType.SHIZUKU -> InstallPolicy.AlwaysInstall
+                            InstallerType.DEFAULT -> InstallPolicy.InstallWhileForeground
+                        }
+
+                    downloadOrchestrator.enqueue(
+                        DownloadSpec(
+                            packageName = packageKey,
+                            repoOwner = repository.owner.login,
+                            repoName = repository.name,
+                            asset = asset,
+                            displayAppName = repository.name,
+                            installPolicy = policy,
+                            releaseTag = releaseTag,
+                        ),
+                    )
+
+                    _state.value =
+                        _state.value.copy(
+                            downloadError = null,
+                            installError = null,
+                            downloadProgressPercent = null,
+                            downloadStage = DownloadStage.DOWNLOADING,
+                            downloadedBytes = 0L,
+                            totalBytes = sizeBytes,
+                            attestationStatus = AttestationStatus.UNCHECKED,
+                        )
+
+                    observeOrchestratorEntry(
+                        packageKey = packageKey,
                         downloadUrl = downloadUrl,
+                        assetName = assetName,
                         sizeBytes = sizeBytes,
                         releaseTag = releaseTag,
+                        isUpdate = isUpdate,
                     )
                 } catch (e: kotlinx.coroutines.CancellationException) {
                     throw e
@@ -1081,6 +1224,235 @@ class DetailsViewModel(
                     )
                 }
             }
+    }
+
+    /**
+     * Returns the path of a parked install file iff the currently-tracked
+     * app has one AND it represents *this exact* (releaseTag, assetName)
+     * pair AND the file still exists on disk.
+     *
+     * Used as the short-circuit gate in [installAsset] to skip the
+     * orchestrator round-trip when the bytes are already on disk.
+     * Returns `null` (= "do a fresh download") in any of these cases:
+     *  - app not tracked
+     *  - no parked file
+     *  - parked file represents a different version or asset
+     *  - parked file no longer exists (manually deleted, etc.)
+     */
+    private fun parkedFilePathIfMatches(
+        releaseTag: String,
+        assetName: String,
+    ): String? {
+        val installedApp = _state.value.installedApp ?: return null
+        val parkedPath = installedApp.pendingInstallFilePath ?: return null
+        val parkedVersion = installedApp.pendingInstallVersion ?: return null
+        val parkedAsset = installedApp.pendingInstallAssetName ?: return null
+        if (parkedVersion != releaseTag) return null
+        if (parkedAsset != assetName) return null
+        // Verify the file still exists. If a user manually cleared
+        // their downloads dir between parking and re-opening Details,
+        // the column points at a stale path and we'd hand the
+        // installer a missing file.
+        return try {
+            val file = File(parkedPath)
+            if (file.exists() && file.length() > 0) parkedPath else null
+        } catch (t: Throwable) {
+            logger.warn("Failed to stat parked install file: ${t.message}")
+            null
+        }
+    }
+
+    /**
+     * Stable orchestrator key for the currently-displayed app.
+     *
+     * Tracked apps key by `packageName` so the apps list and the
+     * details screen point at the same orchestrator entry. Untracked
+     * apps (fresh installs) key by `owner/repo` synthetic — real
+     * package names never contain `/`, so there's no collision risk.
+     *
+     * After a fresh install completes, the InstalledApp row is created
+     * with the real package name; subsequent updates use the real
+     * key. The synthetic key is one-shot and short-lived.
+     */
+    private fun orchestratorKey(): String {
+        val packageName = _state.value.installedApp?.packageName
+        if (packageName != null) return packageName
+        val owner = _state.value.repository?.owner?.login ?: return "unknown"
+        val name = _state.value.repository?.name ?: return "unknown"
+        return "$owner/$name"
+    }
+
+    /**
+     * Subscribes to the orchestrator's entry for [packageKey] and
+     * mirrors its state into [DetailsState]. When the entry reaches
+     * [OrchestratorStage.AwaitingInstall] *and* the install policy is
+     * [InstallPolicy.InstallWhileForeground] (i.e. not the Shizuku
+     * silent path), kicks off the existing install dialog flow on
+     * the file path.
+     *
+     * Suspends until the entry reaches a terminal state (`Completed`,
+     * `Cancelled`, `Failed`, or removed from the map). Cancellation
+     * of the *observer* doesn't cancel the orchestrator — that's the
+     * whole point.
+     */
+    private suspend fun observeOrchestratorEntry(
+        packageKey: String,
+        downloadUrl: String,
+        assetName: String,
+        sizeBytes: Long,
+        releaseTag: String,
+        isUpdate: Boolean,
+    ) {
+        var installFired = false
+        downloadOrchestrator.observe(packageKey).collect { entry ->
+            if (entry == null) {
+                // Orchestrator dropped the entry (cancelled or
+                // dismissed elsewhere). Tear down our local UI state
+                // and exit the observer.
+                if (_state.value.downloadStage != DownloadStage.IDLE) {
+                    _state.value =
+                        _state.value.copy(
+                            downloadStage = DownloadStage.IDLE,
+                            downloadProgressPercent = null,
+                        )
+                }
+                currentAssetName = null
+                return@collect
+            }
+
+            // Mirror progress into local state for the UI. Update
+            // bytes too — the live byte counter is what users see
+            // when content-length is small enough that the percent
+            // doesn't tick smoothly. The orchestrator emits both on
+            // every chunk so the UI gets a continuous update.
+            _state.value =
+                _state.value.copy(
+                    downloadProgressPercent = entry.progressPercent,
+                    downloadedBytes = entry.bytesDownloaded,
+                    totalBytes = entry.totalBytes ?: sizeBytes,
+                )
+
+            when (entry.stage) {
+                OrchestratorStage.Queued -> {
+                    // Nothing UI-visible — same as DOWNLOADING placeholder
+                    _state.value = _state.value.copy(downloadStage = DownloadStage.DOWNLOADING)
+                }
+
+                OrchestratorStage.Downloading -> {
+                    _state.value = _state.value.copy(downloadStage = DownloadStage.DOWNLOADING)
+                }
+
+                OrchestratorStage.Installing -> {
+                    // Either the orchestrator's bare-install path
+                    // (Shizuku) or our own install fired below. Either
+                    // way, surface the INSTALLING stage.
+                    _state.value = _state.value.copy(downloadStage = DownloadStage.INSTALLING)
+                }
+
+                OrchestratorStage.AwaitingInstall -> {
+                    // Bytes are on disk. For the foreground path
+                    // (regular installer), this is our cue to run
+                    // the existing dialog/validation/install flow.
+                    // For the Shizuku path the orchestrator already
+                    // moved past Installing → Completed before we
+                    // ever see AwaitingInstall (it doesn't park).
+                    if (installFired) return@collect
+                    installFired = true
+                    val filePath = entry.filePath ?: return@collect
+                    _state.value =
+                        _state.value.copy(downloadStage = DownloadStage.VERIFYING)
+                    appendLog(
+                        assetName = assetName,
+                        size = sizeBytes,
+                        tag = releaseTag,
+                        result = LogResult.Downloaded,
+                    )
+                    // Run the existing install dialog flow on the
+                    // downloaded file. This is the unchanged
+                    // validation + fingerprint + installer + DB save
+                    // path that the VM has always owned.
+                    try {
+                        installAsset(
+                            isUpdate = isUpdate,
+                            filePath = filePath,
+                            assetName = assetName,
+                            downloadUrl = downloadUrl,
+                            sizeBytes = sizeBytes,
+                            releaseTag = releaseTag,
+                        )
+                        // Successful install — release the entry
+                        // from the orchestrator so the apps row
+                        // doesn't keep showing "ready to install".
+                        downloadOrchestrator.dismiss(packageKey)
+                    } catch (e: kotlinx.coroutines.CancellationException) {
+                        throw e
+                    } catch (t: Throwable) {
+                        logger.error("Foreground install failed: ${t.message}")
+                        _state.value =
+                            _state.value.copy(
+                                downloadStage = DownloadStage.IDLE,
+                                installError = t.message,
+                            )
+                        appendLog(
+                            assetName = assetName,
+                            size = sizeBytes,
+                            tag = releaseTag,
+                            result = Error(t.message),
+                        )
+                    }
+                }
+
+                OrchestratorStage.Completed -> {
+                    // Shizuku/AlwaysInstall path: orchestrator
+                    // installed silently. Surface success and clean
+                    // up. The DB sync happens via PackageEventReceiver
+                    // when Android fires PACKAGE_REPLACED.
+                    _state.value = _state.value.copy(downloadStage = DownloadStage.IDLE)
+                    currentAssetName = null
+                    appendLog(
+                        assetName = assetName,
+                        size = sizeBytes,
+                        tag = releaseTag,
+                        result = if (isUpdate) LogResult.Updated else LogResult.Installed,
+                    )
+                    downloadOrchestrator.dismiss(packageKey)
+                    return@collect
+                }
+
+                OrchestratorStage.Cancelled -> {
+                    _state.value =
+                        _state.value.copy(
+                            downloadStage = DownloadStage.IDLE,
+                            downloadProgressPercent = null,
+                        )
+                    currentAssetName = null
+                    appendLog(
+                        assetName = assetName,
+                        size = sizeBytes,
+                        tag = releaseTag,
+                        result = LogResult.Cancelled,
+                    )
+                    return@collect
+                }
+
+                OrchestratorStage.Failed -> {
+                    _state.value =
+                        _state.value.copy(
+                            downloadStage = DownloadStage.IDLE,
+                            downloadError = entry.errorMessage,
+                        )
+                    currentAssetName = null
+                    appendLog(
+                        assetName = assetName,
+                        size = sizeBytes,
+                        tag = releaseTag,
+                        result = Error(entry.errorMessage),
+                    )
+                    downloadOrchestrator.dismiss(packageKey)
+                    return@collect
+                }
+            }
+        }
     }
 
     private suspend fun installAsset(
@@ -1107,20 +1479,13 @@ class DetailsViewModel(
 
             when (validationResult) {
                 is ApkValidationResult.ExtractionFailed -> {
-                    logger.error("Failed to extract APK info for $assetName")
-                    _state.value =
-                        _state.value.copy(
-                            downloadStage = DownloadStage.IDLE,
-                            installError = "Failed to verify APK package info",
-                        )
-                    currentAssetName = null
-                    appendLog(
-                        assetName = assetName,
-                        size = sizeBytes,
-                        tag = releaseTag,
-                        result = Error("Failed to extract APK info"),
+                    // Don't block installation — proceed without
+                    // validation (same as the Shizuku path).
+                    // PackageEventReceiver will sync the DB post-install.
+                    logger.warn(
+                        "Could not extract APK info for $assetName, " +
+                            "proceeding with unvalidated install",
                     )
-                    return
                 }
 
                 is ApkValidationResult.PackageMismatch -> {
@@ -1199,7 +1564,6 @@ class DetailsViewModel(
                 installOutcome = installOutcome,
             )
         } else if (platform != Platform.ANDROID) {
-            cachedDownloadAssetName = null
             viewModelScope.launch {
                 _events.send(DetailsEvent.OnMessage(getString(Res.string.installer_saved_downloads)))
             }
@@ -1241,109 +1605,6 @@ class DetailsViewModel(
         }
     }
 
-    private suspend fun downloadAsset(
-        assetName: String,
-        sizeBytes: Long,
-        releaseTag: String,
-        isUpdate: Boolean,
-        downloadUrl: String,
-    ): String? {
-        currentAssetName = assetName
-
-        appendLog(
-            assetName = assetName,
-            size = sizeBytes,
-            tag = releaseTag,
-            result =
-                if (isUpdate) {
-                    LogResult.UpdateStarted
-                } else {
-                    LogResult.DownloadStarted
-                },
-        )
-        _state.value =
-            _state.value.copy(
-                downloadError = null,
-                installError = null,
-                downloadProgressPercent = null,
-                attestationStatus = AttestationStatus.UNCHECKED,
-            )
-
-        val existingPath = downloader.getDownloadedFilePath(assetName)
-        val filePath: String
-
-        val existingFile = existingPath?.let { File(it) }
-        if (existingFile != null && existingFile.exists() && existingFile.length() == sizeBytes) {
-            logger.debug("Reusing already downloaded file: $assetName")
-            filePath = existingPath
-            _state.value =
-                _state.value.copy(
-                    downloadProgressPercent = 100,
-                    downloadedBytes = sizeBytes,
-                    totalBytes = sizeBytes,
-                    downloadStage = DownloadStage.VERIFYING,
-                )
-        } else {
-            _state.value =
-                _state.value.copy(
-                    downloadStage = DownloadStage.DOWNLOADING,
-                    downloadedBytes = 0L,
-                    totalBytes = sizeBytes,
-                )
-            downloader.download(downloadUrl, assetName).collect { p ->
-                _state.value =
-                    _state.value.copy(
-                        downloadProgressPercent = p.percent,
-                        downloadedBytes = p.bytesDownloaded,
-                        totalBytes = p.totalBytes ?: sizeBytes,
-                    )
-                if (p.percent == 100) {
-                    _state.value =
-                        _state.value.copy(downloadStage = DownloadStage.VERIFYING)
-                }
-            }
-
-            filePath = downloader.getDownloadedFilePath(assetName)
-                ?: throw IllegalStateException("Downloaded file not found")
-
-            cachedDownloadAssetName = assetName
-        }
-
-        appendLog(
-            assetName = assetName,
-            size = sizeBytes,
-            tag = releaseTag,
-            result = LogResult.Downloaded,
-        )
-        val ext = assetName.substringAfterLast('.', "").lowercase()
-
-        if (!installer.isSupported(ext)) {
-            throw IllegalStateException("Asset type .$ext not supported")
-        }
-
-        try {
-            installer.ensurePermissionsOrThrow(extOrMime = ext)
-        } catch (e: IllegalStateException) {
-            logger.warn("Install permission blocked: ${e.message}")
-            _state.value =
-                _state.value.copy(
-                    downloadStage = DownloadStage.IDLE,
-                    showExternalInstallerPrompt = true,
-                    pendingInstallFilePath = filePath,
-                )
-            currentAssetName = null
-            appendLog(
-                assetName = assetName,
-                size = sizeBytes,
-                tag = releaseTag,
-                result = LogResult.PermissionBlocked,
-            )
-            return null
-        }
-
-        return filePath
-    }
-
     private suspend fun saveInstalledAppToDatabase(
         apkInfo: ApkPackageInfo,
         assetName: String,
@@ -1383,6 +1644,14 @@ class DetailsViewModel(
         }
     }
 
+    /**
+     * "Download only" entry point — used by the action that
+     * downloads an asset without auto-installing it (e.g. for users
+     * who want to side-load via a different installer). Routes
+     * through the orchestrator with [InstallPolicy.DeferUntilUserAction]
+     * so the file is parked at AwaitingInstall and the user can pick
+     * it up from the apps row whenever they're ready.
+     */
     private fun downloadAsset(
         downloadUrl: String,
         assetName: String,
@@ -1390,37 +1659,53 @@ class DetailsViewModel(
         releaseTag: String,
     ) {
         currentDownloadJob?.cancel()
+        val packageKey = orchestratorKey()
+        val repository = _state.value.repository ?: return
+        // Use the exact asset the user tapped, not the auto-picked primary.
+        val asset = _state.value.selectedRelease?.assets
+            ?.find { it.downloadUrl == downloadUrl }
+            ?: _state.value.primaryAsset
+            ?: return
+        currentAssetName = assetName
+
+        appendLog(
+            assetName = assetName,
+            size = sizeBytes,
+            tag = releaseTag,
+            result = LogResult.DownloadStarted,
+        )
+        _state.value =
+            _state.value.copy(
+                isDownloading = true,
+                downloadError = null,
+                installError = null,
+                downloadProgressPercent = null,
+            )
+
         currentDownloadJob =
             viewModelScope.launch {
                 try {
-                    currentAssetName = assetName
-
-                    appendLog(
-                        assetName = assetName,
-                        size = sizeBytes,
-                        tag = releaseTag,
-                        result = LogResult.DownloadStarted,
+                    downloadOrchestrator.enqueue(
+                        DownloadSpec(
+                            packageName = packageKey,
+                            repoOwner = repository.owner.login,
+                            repoName = repository.name,
+                            asset = asset,
+                            displayAppName = repository.name,
+                            installPolicy = InstallPolicy.DeferUntilUserAction,
+                            releaseTag = releaseTag,
+                        ),
                     )
-                    _state.value =
-                        _state.value.copy(
-                            isDownloading = true,
-                            downloadError = null,
-                            installError = null,
-                            downloadProgressPercent = null,
-                        )
-
-                    downloader.download(downloadUrl, assetName).collect { p ->
-                        _state.value = _state.value.copy(downloadProgressPercent = p.percent)
-                    }
-
-                    _state.value = _state.value.copy(isDownloading = false)
-                    currentAssetName = null
-                    appendLog(
+                    observeOrchestratorEntry(
+                        packageKey = packageKey,
+                        downloadUrl = downloadUrl,
                         assetName = assetName,
-                        size = sizeBytes,
-                        tag = releaseTag,
-                        result = LogResult.Downloaded,
+                        sizeBytes = sizeBytes,
+                        releaseTag = releaseTag,
+                        isUpdate = false,
                     )
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    throw e
                 } catch (t: Throwable) {
                     _state.value =
                         _state.value.copy(
@@ -1480,19 +1765,26 @@ class DetailsViewModel(
 
     override fun onCleared() {
         super.onCleared()
+        // Cancel the orchestrator OBSERVER (not the orchestrator
+        // entry itself). The download keeps running in the
+        // application-scoped orchestrator scope.
         currentDownloadJob?.cancel()
 
-        val assetsToClean = listOfNotNull(currentAssetName, cachedDownloadAssetName).distinct()
-        if (assetsToClean.isNotEmpty()) {
-            viewModelScope.launch(NonCancellable) {
-                for (asset in assetsToClean) {
-                    try {
-                        downloader.cancelDownload(asset)
-                        logger.debug("Cleaned up download on screen leave: $asset")
-                    } catch (t: Throwable) {
-                        logger.error("Failed to clean download on leave: ${t.message}")
-                    }
-                }
+        // Tell the orchestrator that the foreground watcher is gone:
+        // any in-flight download with policy InstallWhileForeground
+        // should switch to DeferUntilUserAction so the file gets
+        // parked + the user gets a notification when bytes are done.
+        // Race-safe — the orchestrator handles "already past park
+        // time" by retroactively notifying.
+        //
+        // NonCancellable so the call runs to completion even though
+        // viewModelScope is being torn down around us.
+        val packageKey = orchestratorKey()
+        viewModelScope.launch(NonCancellable) {
+            try {
+                downloadOrchestrator.downgradeToDeferred(packageKey)
+            } catch (t: Throwable) {
+                logger.error("Failed to downgrade orchestrator on screen leave: ${t.message}")
             }
         }
     }

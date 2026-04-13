@@ -143,6 +143,31 @@ interface InstalledAppDao {
     )
 
     /**
+     * Sets the path + version + asset name of a
+     * downloaded-but-not-yet-installed asset. Pass all `null` to
+     * clear (e.g. after the user installs the file).
+     *
+     * The version + asset name pair is what the Details screen uses
+     * to detect "the parked file matches the currently-selected
+     * release" and skip the redundant re-download.
+     */
+    @Query(
+        """
+        UPDATE installed_apps
+           SET pendingInstallFilePath = :path,
+               pendingInstallVersion = :version,
+               pendingInstallAssetName = :assetName
+         WHERE packageName = :packageName
+        """,
+    )
+    suspend fun updatePendingInstallFilePath(
+        packageName: String,
+        path: String?,
+        version: String?,
+        assetName: String?,
+    )
+
+    /**
      * Atomically clears the "update available" badge and any cached
      * latest-release metadata for [packageName], while bumping
      * `lastCheckedAt`. Used by `checkForUpdates` whenever the current

@@ -44,4 +44,7 @@ data class InstalledAppUi(
     val assetGlobPattern: String? = null,
     val pickedAssetIndex: Int? = null,
     val pickedAssetSiblingCount: Int? = null,
+    val pendingInstallFilePath: String? = null,
+    val pendingInstallVersion: String? = null,
+    val pendingInstallAssetName: String? = null,
 )

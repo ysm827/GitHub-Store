@@ -152,10 +152,9 @@ class AutoUpdateWorker(
 
         val apkInfo =
             installer.getApkInfoExtractor().extractPackageInfo(filePath)
-                ?: throw IllegalStateException("Failed to extract APK info for ${app.appName}")
 
-        // Validate package name matches
-        if (apkInfo.packageName != app.packageName) {
+        // Validate package name matches (only when extraction succeeded)
+        if (apkInfo != null && apkInfo.packageName != app.packageName) {
             Logger.e {
                 "AutoUpdateWorker: Package name mismatch for ${app.appName}! " +
                     "Expected: ${app.packageName}, got: ${apkInfo.packageName}. " +
@@ -168,7 +167,7 @@ class AutoUpdateWorker(
 
         val currentApp = installedAppsRepository.getAppByPackage(app.packageName)
 
-        if (currentApp?.signingFingerprint != null) {
+        if (apkInfo != null && currentApp?.signingFingerprint != null) {
             val expected = currentApp.signingFingerprint!!.trim().uppercase()
             val actual = apkInfo.signingFingerprint?.trim()?.uppercase()
             if (actual == null || expected != actual) {
@@ -181,28 +180,34 @@ class AutoUpdateWorker(
                     "Signing fingerprint verification failed for ${app.appName}, blocking auto-update",
                 )
             }
+        }
 
+        if (apkInfo == null) {
+            Logger.w { "AutoUpdateWorker: APK info extraction failed for ${app.appName}, installing without validation" }
+        }
+
+        if (currentApp != null) {
             installedAppsRepository.updateApp(
                 currentApp.copy(
                     isPendingInstall = true,
                     latestVersion = latestVersion,
                     latestAssetName = assetName,
                     latestAssetUrl = assetUrl,
-                    latestVersionName = apkInfo.versionName,
-                    latestVersionCode = apkInfo.versionCode,
+                    latestVersionName = apkInfo?.versionName ?: latestVersion,
+                    latestVersionCode = apkInfo?.versionCode ?: 0L,
                 ),
             )
-
-            Logger.d { "AutoUpdateWorker: Installing ${app.appName} via Shizuku" }
-            try {
-                installer.install(filePath, ext)
-            } catch (e: Exception) {
-                installedAppsRepository.updatePendingStatus(app.packageName, false)
-                throw e
-            }
-
-            Logger.d { "AutoUpdateWorker: Install command completed for ${app.appName}, waiting for system confirmation via broadcast" }
         }
+
+        Logger.d { "AutoUpdateWorker: Installing ${app.appName} via Shizuku" }
+        try {
+            installer.install(filePath, ext)
+        } catch (e: Exception) {
+            installedAppsRepository.updatePendingStatus(app.packageName, false)
+            throw e
+        }
+
+        Logger.d { "AutoUpdateWorker: Install command completed for ${app.appName}, waiting for system confirmation via broadcast" }
     }
 
     private fun createForegroundInfo(

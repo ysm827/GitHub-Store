@@ -46,6 +46,9 @@ fun InstalledApp.toEntity(): InstalledAppEntity =
         assetGlobPattern = assetGlobPattern,
         pickedAssetIndex = pickedAssetIndex,
         pickedAssetSiblingCount = pickedAssetSiblingCount,
+        pendingInstallFilePath = pendingInstallFilePath,
+        pendingInstallVersion = pendingInstallVersion,
+        pendingInstallAssetName = pendingInstallAssetName,
     )
 
 fun InstalledAppEntity.toDomain(): InstalledApp =
@@ -91,4 +94,7 @@ fun InstalledAppEntity.toDomain(): InstalledApp =
         assetGlobPattern = assetGlobPattern,
         pickedAssetIndex = pickedAssetIndex,
         pickedAssetSiblingCount = pickedAssetSiblingCount,
+        pendingInstallFilePath = pendingInstallFilePath,
+        pendingInstallVersion = pendingInstallVersion,
+        pendingInstallAssetName = pendingInstallAssetName,
     )

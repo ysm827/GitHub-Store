@@ -8,9 +8,11 @@ class AndroidFileLocationsProvider(
     private val context: Context,
 ) : zed.rainxch.core.data.services.FileLocationsProvider {
     override fun appDownloadsDir(): String {
-        val publicDownloads = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-        val dir = File(publicDownloads, "GitHub Store")
-        if (!dir.exists()) dir.mkdirs()
+        val dir = context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)
+            ?: File(context.filesDir, "downloads")
+        if (!dir.exists() && !dir.mkdirs() && !dir.exists()) {
+            throw IllegalStateException("Failed to create downloads directory: ${dir.absolutePath}")
+        }
         return dir.absolutePath
     }
 

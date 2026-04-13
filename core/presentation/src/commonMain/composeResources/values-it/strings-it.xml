@@ -680,4 +680,7 @@
     <string name="variant_first_pin_toast_generic">I prossimi aggiornamenti preferiranno questa variante. Puoi modificarlo in qualsiasi momento dalle impostazioni dell\'app.</string>
     <string name="variant_unpinned_toast">Variante sbloccata. Gli aggiornamenti useranno il selettore automatico.</string>
     <string name="advanced_filter_variant_relation">Il filtro decide quali file vengono considerati. Il blocco della variante decide quale di essi viene installato.</string>
+    <string name="install">Installa</string>
+    <string name="ready_to_install">Pronto per l\'installazione</string>
+    <string name="install_ready">Installa (pronto)</string>
 </resources>

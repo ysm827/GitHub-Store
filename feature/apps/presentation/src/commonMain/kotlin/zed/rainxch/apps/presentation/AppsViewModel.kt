@@ -29,12 +29,19 @@ import zed.rainxch.apps.presentation.model.UpdateAllProgress
 import zed.rainxch.apps.presentation.model.UpdateState
 import zed.rainxch.core.domain.logging.GitHubStoreLogger
 import zed.rainxch.core.domain.model.InstalledApp
+import zed.rainxch.core.domain.model.InstallerType
 import zed.rainxch.core.domain.model.RateLimitException
 import zed.rainxch.core.domain.network.Downloader
 import zed.rainxch.core.domain.repository.InstalledAppsRepository
 import zed.rainxch.core.domain.repository.TweaksRepository
+import zed.rainxch.core.domain.system.DownloadOrchestrator
+import zed.rainxch.core.domain.system.DownloadSpec
+import zed.rainxch.core.domain.system.DownloadStage as OrchestratorStage
+import zed.rainxch.core.domain.system.InstallPolicy
 import zed.rainxch.core.domain.system.Installer
 import zed.rainxch.core.domain.use_cases.SyncInstalledAppsUseCase
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.onEach
 import zed.rainxch.core.domain.util.AssetFilter
 import zed.rainxch.core.domain.util.AssetVariant
 import zed.rainxch.core.domain.utils.ShareManager
@@ -50,6 +57,7 @@ class AppsViewModel(
     private val logger: GitHubStoreLogger,
     private val shareManager: ShareManager,
     private val tweaksRepository: TweaksRepository,
+    private val downloadOrchestrator: DownloadOrchestrator,
 ) : ViewModel() {
     companion object {
         private const val UPDATE_CHECK_COOLDOWN_MS = 30 * 60 * 1000L
@@ -223,6 +231,10 @@ class AppsViewModel(
                 } else {
                     updateSingleApp(action.app)
                 }
+            }
+
+            is AppsAction.OnInstallPendingApp -> {
+                installPendingApp(action.app)
             }
 
             is AppsAction.OnCancelUpdate -> {
@@ -912,17 +924,64 @@ class AppsViewModel(
 
                     updateAppState(app.packageName, UpdateState.Downloading)
 
-                    downloader.download(latestAssetUrl, latestAssetName).collect { progress ->
-                        updateAppProgress(app.packageName, progress.percent)
-                    }
+                    // Route the download through the orchestrator so
+                    // it survives this VM being torn down (user
+                    // navigating away from the apps tab). Shizuku
+                    // gets AlwaysInstall (silent install regardless
+                    // of foreground state); regular installer gets
+                    // InstallWhileForeground so the existing dialog/
+                    // installer dispatch below stays in charge.
+                    val installerType =
+                        try {
+                            tweaksRepository.getInstallerType().first()
+                        } catch (e: CancellationException) {
+                            throw e
+                        } catch (e: Exception) {
+                            InstallerType.DEFAULT
+                        }
+                    val policy =
+                        when (installerType) {
+                            InstallerType.SHIZUKU -> InstallPolicy.AlwaysInstall
+                            InstallerType.DEFAULT -> InstallPolicy.InstallWhileForeground
+                        }
 
-                    val filePath =
-                        downloader.getDownloadedFilePath(latestAssetName)
-                            ?: throw IllegalStateException("Downloaded file not found")
+                    downloadOrchestrator.enqueue(
+                        DownloadSpec(
+                            packageName = app.packageName,
+                            repoOwner = app.repoOwner,
+                            repoName = app.repoName,
+                            asset = primaryAsset,
+                            displayAppName = app.appName,
+                            installPolicy = policy,
+                            releaseTag = latestRelease.tagName,
+                        ),
+                    )
+
+                    val orchestratorResult =
+                        waitForOrchestratorReady(app.packageName) { progress ->
+                            updateAppProgress(app.packageName, progress)
+                        }
+                    val filePath = when (orchestratorResult) {
+                        is OrchestratorResult.Ready -> orchestratorResult.filePath
+                        is OrchestratorResult.AlreadyInstalled -> {
+                            updateAppState(app.packageName, UpdateState.Idle)
+                            return@launch
+                        }
+                        is OrchestratorResult.Cancelled -> {
+                            updateAppState(app.packageName, UpdateState.Idle)
+                            return@launch
+                        }
+                        is OrchestratorResult.Failed -> {
+                            updateAppState(
+                                app.packageName,
+                                UpdateState.Error(orchestratorResult.message ?: "Download failed"),
+                            )
+                            return@launch
+                        }
+                    }
 
                     val apkInfo =
                         installer.getApkInfoExtractor().extractPackageInfo(filePath)
-                            ?: throw IllegalStateException("Failed to extract APK info")
 
                     val currentApp = installedAppsRepository.getAppByPackage(app.packageName)
                     if (currentApp != null) {
@@ -932,8 +991,8 @@ class AppsViewModel(
                                 latestVersion = latestVersion,
                                 latestAssetName = latestAssetName,
                                 latestAssetUrl = latestAssetUrl,
-                                latestVersionName = apkInfo.versionName,
-                                latestVersionCode = apkInfo.versionCode,
+                                latestVersionName = apkInfo?.versionName ?: latestVersion,
+                                latestVersionCode = apkInfo?.versionCode ?: 0L,
                             ),
                         )
                     } else {
@@ -947,6 +1006,19 @@ class AppsViewModel(
                     } catch (e: Exception) {
                         installedAppsRepository.updatePendingStatus(app.packageName, false)
                         throw e
+                    }
+
+                    // Successful install — release the orchestrator
+                    // entry so the apps row stops showing the
+                    // download/install state. The DB sync continues
+                    // via PackageEventReceiver.
+                    downloadOrchestrator.dismiss(app.packageName)
+                    try {
+                        installedAppsRepository.setPendingInstallFilePath(app.packageName, null)
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (clearEx: Exception) {
+                        logger.error("Failed to clear pending install file path: ${clearEx.message}")
                     }
 
                     updateAppState(app.packageName, UpdateState.Idle)
@@ -1173,6 +1245,99 @@ class AppsViewModel(
     private suspend fun markPendingUpdate(app: InstalledApp) {
         installedAppsRepository.updatePendingStatus(app.packageName, true)
         logger.debug("Marked ${app.packageName} as pending install")
+    }
+
+    /**
+     * Subscribes to the orchestrator's entry for [packageName] and
+     * suspends until it reaches a terminal stage. Mirrors progress
+     * via [onProgress] while downloading.
+     *
+     * Returns:
+     *  - The file path when the orchestrator parks the file at
+     *    [OrchestratorStage.AwaitingInstall] (regular installer path)
+     *  - `null` when the orchestrator finishes its own install
+     *    ([OrchestratorStage.Completed], the Shizuku/AlwaysInstall
+     *    path) — the caller has nothing more to do
+     *  - `null` when the entry is cancelled or fails — the caller
+     *    treats this as "abort the local install logic"
+     *
+     * Implementation: forwards progress side-effects via a
+     * `transform` step, then `first { predicate }` finds the first
+     * emission whose stage is terminal. Avoids needing to throw out
+     * of `collect`.
+     */
+    /**
+     * Result type for [waitForOrchestratorReady] so callers can
+     * distinguish "file is ready" from "orchestrator already installed"
+     * from "download failed".
+     */
+    private sealed interface OrchestratorResult {
+        data class Ready(val filePath: String) : OrchestratorResult
+        data object AlreadyInstalled : OrchestratorResult
+        data object Cancelled : OrchestratorResult
+        data class Failed(val message: String?) : OrchestratorResult
+    }
+
+    private suspend fun waitForOrchestratorReady(
+        packageName: String,
+        onProgress: (Int) -> Unit,
+    ): OrchestratorResult {
+        val terminal =
+            downloadOrchestrator
+                .observe(packageName)
+                .onEach { entry ->
+                    if (entry != null) {
+                        entry.progressPercent?.let(onProgress)
+                    }
+                }
+                .first { entry ->
+                    entry == null ||
+                        entry.stage == OrchestratorStage.AwaitingInstall ||
+                        entry.stage == OrchestratorStage.Completed ||
+                        entry.stage == OrchestratorStage.Cancelled ||
+                        entry.stage == OrchestratorStage.Failed
+                }
+        return when {
+            terminal == null -> OrchestratorResult.Cancelled
+            terminal.stage == OrchestratorStage.AwaitingInstall ->
+                terminal.filePath?.let { OrchestratorResult.Ready(it) }
+                    ?: OrchestratorResult.Failed("Downloaded file path missing")
+            terminal.stage == OrchestratorStage.Completed -> OrchestratorResult.AlreadyInstalled
+            terminal.stage == OrchestratorStage.Failed -> OrchestratorResult.Failed(terminal.errorMessage)
+            else -> OrchestratorResult.Cancelled
+        }
+    }
+
+    /**
+     * Triggers an install for an app whose download was previously
+     * deferred (the orchestrator parked the file in `AwaitingInstall`
+     * mode after the user navigated away mid-download). Used by the
+     * apps row "Install" button when [InstalledAppUi.pendingInstallFilePath]
+     * is non-null.
+     *
+     * Delegates to [DownloadOrchestrator.installPending] which
+     * handles validation-free install + DB cleanup.
+     */
+    private fun installPendingApp(app: InstalledAppUi) {
+        if (activeUpdates.containsKey(app.packageName)) {
+            logger.debug("Install already in progress for ${app.packageName}")
+            return
+        }
+        viewModelScope.launch {
+            try {
+                updateAppState(app.packageName, UpdateState.Installing)
+                downloadOrchestrator.installPending(app.packageName)
+                updateAppState(app.packageName, UpdateState.Idle)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (t: Throwable) {
+                logger.error("Failed to install pending app ${app.packageName}: ${t.message}")
+                updateAppState(
+                    app.packageName,
+                    UpdateState.Error(t.message ?: "Install failed"),
+                )
+            }
+        }
     }
 
     private suspend fun cleanupUpdate(
@@ -1714,17 +1879,21 @@ class AppsViewModel(
     override fun onCleared() {
         super.onCleared()
 
+        // Cancel local OBSERVERS only — the orchestrator entries
+        // keep running in the application scope. Each in-flight
+        // download is downgraded to DeferUntilUserAction so the
+        // user gets a notification when it's ready, instead of
+        // losing the work.
         updateAllJob?.cancel()
+        val packageNames = activeUpdates.keys.toList()
         activeUpdates.values.forEach { it.cancel() }
 
-        viewModelScope.launch {
-            _state.value.apps.forEach { appItem ->
-                if (appItem.updateState != UpdateState.Idle &&
-                    appItem.updateState != UpdateState.Success
-                ) {
-                    appItem.installedApp.latestAssetName?.let { assetName ->
-                        downloader.cancelDownload(assetName)
-                    }
+        viewModelScope.launch(kotlinx.coroutines.NonCancellable) {
+            for (packageName in packageNames) {
+                try {
+                    downloadOrchestrator.downgradeToDeferred(packageName)
+                } catch (t: Throwable) {
+                    logger.error("Failed to downgrade orchestrator for $packageName: ${t.message}")
                 }
             }
         }

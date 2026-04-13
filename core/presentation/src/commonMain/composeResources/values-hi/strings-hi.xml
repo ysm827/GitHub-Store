@@ -679,4 +679,7 @@
     <string name="variant_first_pin_toast_generic">भविष्य के अपडेट इस वेरिएंट को प्राथमिकता देंगे। ऐप सेटिंग्स में किसी भी समय बदलें।</string>
     <string name="variant_unpinned_toast">वेरिएंट अनपिन किया गया। अपडेट स्वचालित चयनकर्ता का उपयोग करेंगे।</string>
     <string name="advanced_filter_variant_relation">फ़िल्टर तय करता है कि कौन सी एसेट्स पर विचार किया जाए। वेरिएंट पिन तय करता है कि उनमें से कौन इंस्टॉल हो।</string>
+    <string name="install">इंस्टॉल</string>
+    <string name="ready_to_install">इंस्टॉल के लिए तैयार</string>
+    <string name="install_ready">इंस्टॉल (तैयार)</string>
 </resources>

@@ -90,4 +90,14 @@ sealed interface AppsAction {
     // Export/Import
     data object OnExportApps : AppsAction
     data object OnImportApps : AppsAction
+
+    /**
+     * User tapped the "Install" affordance on a row whose download
+     * was previously deferred (the user navigated away from Details
+     * mid-download). The orchestrator parked the file; this action
+     * picks it up and runs the installer.
+     */
+    data class OnInstallPendingApp(
+        val app: InstalledAppUi,
+    ) : AppsAction
 }

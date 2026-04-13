@@ -641,4 +641,7 @@
     <string name="variant_first_pin_toast_generic">今後のアップデートではこのバリアントが優先されます。アプリ設定からいつでも変更できます。</string>
     <string name="variant_unpinned_toast">バリアントの固定を解除しました。アップデートは自動選択を使用します。</string>
     <string name="advanced_filter_variant_relation">フィルターはどのアセットを考慮するかを決めます。バリアントの固定はそのうちどれをインストールするかを決めます。</string>
+    <string name="install">インストール</string>
+    <string name="ready_to_install">インストール準備完了</string>
+    <string name="install_ready">インストール（準備完了）</string>
 </resources>

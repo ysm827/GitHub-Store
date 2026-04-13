@@ -641,4 +641,7 @@
     <string name="variant_first_pin_toast_generic">Las próximas actualizaciones preferirán esta variante. Cámbialo cuando quieras desde los ajustes de la app.</string>
     <string name="variant_unpinned_toast">Variante desfijada. Las actualizaciones usarán el selector automático.</string>
     <string name="advanced_filter_variant_relation">El filtro decide qué archivos se consideran. La variante fijada decide cuál de ellos se instala.</string>
+    <string name="install">Instalar</string>
+    <string name="ready_to_install">Listo para instalar</string>
+    <string name="install_ready">Instalar (listo)</string>
 </resources>

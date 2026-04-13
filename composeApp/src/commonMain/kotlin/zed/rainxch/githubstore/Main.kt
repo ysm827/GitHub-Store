@@ -41,6 +41,19 @@ fun App(deepLinkUri: String? = null) {
                     )
                 }
 
+                DeepLinkDestination.Apps -> {
+                    // Pending-install notification dropped us here.
+                    // Navigate to the apps tab so the user can finish
+                    // the deferred install from the row.
+                    navController.navigate(GithubStoreGraph.AppsScreen) {
+                        popUpTo(GithubStoreGraph.HomeScreen) {
+                            saveState = true
+                        }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                }
+
                 DeepLinkDestination.None -> {
                     // ignore unrecognized deep links
                 }
