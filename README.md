@@ -184,6 +184,14 @@ winget install zed.rainxch.githubstore
 
 ---
 
+# Discord
+You can submit any feedback in our [discord server](https://discord.gg/NBW4zeFcG6)
+<p align="center">
+  <a href="https://discord.gg/NBW4zeFcG6">
+    <img src="https://invidget.switchblade.xyz/NBW4zeFcG6">
+  </a>
+</p>
+
 <p align="center">
 
 # 🏆 Featured In
