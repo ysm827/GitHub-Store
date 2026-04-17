@@ -21,6 +21,7 @@ import zed.rainxch.core.data.local.db.dao.SeenRepoDao
 import zed.rainxch.core.data.local.db.dao.StarredRepoDao
 import zed.rainxch.core.data.local.db.dao.UpdateHistoryDao
 import zed.rainxch.core.data.logging.KermitLogger
+import zed.rainxch.core.data.network.BackendApiClient
 import zed.rainxch.core.data.network.GitHubClientProvider
 import zed.rainxch.core.data.network.ProxyManager
 import zed.rainxch.core.data.network.ProxyTesterImpl
@@ -136,6 +137,10 @@ val coreModule =
 
         single<CacheManager> {
             CacheManager(cacheDao = get())
+        }
+
+        single<BackendApiClient> {
+            BackendApiClient()
         }
 
         // Application-scoped download / install orchestrator. Lives

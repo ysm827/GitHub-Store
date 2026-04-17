@@ -23,6 +23,7 @@ import zed.rainxch.core.data.cache.CacheManager.CacheTtl.SEARCH_RESULTS
 import zed.rainxch.core.data.dto.GithubRepoNetworkModel
 import zed.rainxch.core.data.dto.GithubRepoSearchResponse
 import zed.rainxch.core.data.mappers.toSummary
+import zed.rainxch.core.data.network.BackendApiClient
 import zed.rainxch.core.data.network.executeRequest
 import zed.rainxch.core.domain.model.DiscoveryPlatform
 import zed.rainxch.core.domain.model.GithubRepoSummary
@@ -37,6 +38,7 @@ import zed.rainxch.search.data.utils.LruCache
 
 class SearchRepositoryImpl(
     private val httpClient: HttpClient,
+    private val backendApiClient: BackendApiClient,
     private val cacheManager: CacheManager,
 ) : SearchRepository {
     private val releaseCheckCache = LruCache<String, GithubRepoSummary>(maxSize = 500)
@@ -47,6 +49,7 @@ class SearchRepositoryImpl(
         private const val VERIFY_CONCURRENCY = 15
         private const val PER_CHECK_TIMEOUT_MS = 2000L
         private const val MAX_AUTO_SKIP_PAGES = 3
+        private const val BACKEND_PAGE_SIZE = 20
     }
 
     private fun searchCacheKey(
@@ -84,92 +87,172 @@ class SearchRepositoryImpl(
                 return@channelFlow
             }
 
-            val searchQuery = buildSearchQuery(query, language)
-            val sort = sortBy.toGithubSortParam()
-            val order = sortOrder.toGithubParam()
+            // Try backend search first
+            val backendResult = tryBackendSearch(query, platform, sortBy, page)
+            if (backendResult != null) {
+                cacheManager.put(cacheKey, backendResult, SEARCH_RESULTS)
+                send(backendResult)
+                return@channelFlow
+            }
 
-            try {
-                var currentPage = page
-                var pagesSkipped = 0
+            // Fallback to GitHub REST search
+            fallbackGithubSearch(query, platform, language, sortBy, sortOrder, page, cacheKey)
+        }.flowOn(Dispatchers.IO)
 
-                while (pagesSkipped <= MAX_AUTO_SKIP_PAGES) {
-                    currentCoroutineContext().ensureActive()
+    // ── Backend search ────────────────────────────────────────────────
 
-                    val response =
-                        httpClient
-                            .executeRequest<GithubRepoSearchResponse> {
-                                get("/search/repositories") {
-                                    parameter("q", searchQuery)
-                                    parameter("per_page", PER_PAGE)
-                                    parameter("page", currentPage)
-                                    if (sort != null) {
-                                        parameter("sort", sort)
-                                        parameter("order", order)
-                                    }
+    private suspend fun tryBackendSearch(
+        query: String,
+        platform: DiscoveryPlatform,
+        sortBy: SortBy,
+        page: Int,
+    ): PaginatedDiscoveryRepositories? {
+        if (query.isBlank()) return null
+
+        // Backend doesn't support forks sorting — fall through to GitHub REST
+        if (sortBy == SortBy.MostForks) return null
+
+        val platformSlug = when (platform) {
+            DiscoveryPlatform.Android -> "android"
+            DiscoveryPlatform.Windows -> "windows"
+            DiscoveryPlatform.Macos -> "macos"
+            DiscoveryPlatform.Linux -> "linux"
+            DiscoveryPlatform.All -> null
+        }
+
+        val sort = when (sortBy) {
+            SortBy.MostStars -> "stars"
+            SortBy.BestMatch -> "relevance"
+            SortBy.MostForks -> null // unreachable, guarded above
+        }
+
+        val offset = (page - 1) * BACKEND_PAGE_SIZE
+        val result = backendApiClient.search(
+            query = query,
+            platform = platformSlug,
+            sort = sort,
+            limit = BACKEND_PAGE_SIZE,
+            offset = offset,
+        )
+
+        return result.getOrNull()?.let { searchResponse ->
+            val repos = searchResponse.items.map { it.toSummary() }
+
+            val hasMore = offset + repos.size < searchResponse.totalHits
+            PaginatedDiscoveryRepositories(
+                repos = repos,
+                hasMore = hasMore,
+                nextPageIndex = page + 1,
+                totalCount = searchResponse.totalHits,
+            )
+        }
+    }
+
+    // ── Fallback GitHub REST search ───────────────────────────────────
+
+    private suspend fun kotlinx.coroutines.channels.ProducerScope<PaginatedDiscoveryRepositories>.fallbackGithubSearch(
+        query: String,
+        platform: DiscoveryPlatform,
+        language: ProgrammingLanguage,
+        sortBy: SortBy,
+        sortOrder: SortOrder,
+        page: Int,
+        cacheKey: String,
+    ) {
+        val searchQuery = buildSearchQuery(query, language)
+        val sort = sortBy.toGithubSortParam()
+        val order = sortOrder.toGithubParam()
+
+        try {
+            var currentPage = page
+            var pagesSkipped = 0
+
+            while (pagesSkipped <= MAX_AUTO_SKIP_PAGES) {
+                currentCoroutineContext().ensureActive()
+
+                val response =
+                    httpClient
+                        .executeRequest<GithubRepoSearchResponse> {
+                            get("/search/repositories") {
+                                parameter("q", searchQuery)
+                                parameter("per_page", PER_PAGE)
+                                parameter("page", currentPage)
+                                if (sort != null) {
+                                    parameter("sort", sort)
+                                    parameter("order", order)
                                 }
-                            }.getOrThrow()
+                            }
+                        }.getOrThrow()
 
-                    val total = response.totalCount
-                    val baseHasMore =
-                        (currentPage * PER_PAGE) < total && response.items.isNotEmpty()
+                val total = response.totalCount
+                val baseHasMore =
+                    (currentPage * PER_PAGE) < total && response.items.isNotEmpty()
 
-                    if (response.items.isEmpty()) {
-                        send(
-                            PaginatedDiscoveryRepositories(
-                                repos = emptyList(),
-                                hasMore = false,
-                                nextPageIndex = currentPage + 1,
-                                totalCount = total,
-                            ),
-                        )
-                        return@channelFlow
-                    }
-
-                    val verified = verifyBatch(response.items, platform)
-
-                    if (verified.isNotEmpty()) {
-                        val result =
-                            PaginatedDiscoveryRepositories(
-                                repos = verified,
-                                hasMore = baseHasMore,
-                                nextPageIndex = currentPage + 1,
-                                totalCount = total,
-                            )
-                        cacheManager.put(cacheKey, result, SEARCH_RESULTS)
-                        send(result)
-                        return@channelFlow
-                    }
-
-                    if (!baseHasMore) {
-                        send(
-                            PaginatedDiscoveryRepositories(
-                                repos = emptyList(),
-                                hasMore = false,
-                                nextPageIndex = currentPage + 1,
-                                totalCount = total,
-                            ),
-                        )
-                        return@channelFlow
-                    }
-
-                    currentPage++
-                    pagesSkipped++
+                if (response.items.isEmpty()) {
+                    send(
+                        PaginatedDiscoveryRepositories(
+                            repos = emptyList(),
+                            hasMore = false,
+                            nextPageIndex = currentPage + 1,
+                            totalCount = total,
+                        ),
+                    )
+                    return
                 }
 
-                send(
-                    PaginatedDiscoveryRepositories(
-                        repos = emptyList(),
-                        hasMore = true,
-                        nextPageIndex = currentPage + 1,
-                        totalCount = null,
-                    ),
-                )
-            } catch (e: RateLimitException) {
-                throw e
-            } catch (e: CancellationException) {
-                throw e
+                val verified = verifyBatch(response.items, platform)
+
+                if (verified.isNotEmpty()) {
+                    val result =
+                        PaginatedDiscoveryRepositories(
+                            repos = verified,
+                            hasMore = baseHasMore,
+                            nextPageIndex = currentPage + 1,
+                            totalCount = total,
+                        )
+                    cacheManager.put(cacheKey, result, SEARCH_RESULTS)
+                    send(result)
+                    return
+                }
+
+                if (!baseHasMore) {
+                    send(
+                        PaginatedDiscoveryRepositories(
+                            repos = emptyList(),
+                            hasMore = false,
+                            nextPageIndex = currentPage + 1,
+                            totalCount = total,
+                        ),
+                    )
+                    return
+                }
+
+                currentPage++
+                pagesSkipped++
             }
-        }.flowOn(Dispatchers.IO)
+
+            send(
+                PaginatedDiscoveryRepositories(
+                    repos = emptyList(),
+                    hasMore = true,
+                    nextPageIndex = currentPage + 1,
+                    totalCount = null,
+                ),
+            )
+        } catch (e: RateLimitException) {
+            throw e
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            send(
+                PaginatedDiscoveryRepositories(
+                    repos = emptyList(),
+                    hasMore = false,
+                    nextPageIndex = page,
+                ),
+            )
+        }
+    }
 
     private suspend fun verifyBatch(
         items: List<GithubRepoNetworkModel>,

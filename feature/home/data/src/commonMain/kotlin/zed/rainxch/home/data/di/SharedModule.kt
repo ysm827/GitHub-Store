@@ -1,6 +1,7 @@
 package zed.rainxch.home.data.di
 
 import org.koin.dsl.module
+import zed.rainxch.core.data.network.BackendApiClient
 import zed.rainxch.home.data.data_source.CachedRepositoriesDataSource
 import zed.rainxch.home.data.data_source.impl.CachedRepositoriesDataSourceImpl
 import zed.rainxch.home.data.repository.HomeRepositoryImpl
@@ -20,6 +21,7 @@ val homeModule =
 
         single<CachedRepositoriesDataSource> {
             CachedRepositoriesDataSourceImpl(
+                backendApiClient = get(),
                 logger = get(),
             )
         }
