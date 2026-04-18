@@ -14,16 +14,20 @@ import kotlin.time.Instant
 
 @OptIn(ExperimentalTime::class)
 private fun parseIsoInstantLenient(isoInstant: String): Instant? {
-    if (isoInstant.isBlank()) return null
-    runCatching { return Instant.parse(isoInstant) }
+    // Trim up front so `Instant.parse` doesn't choke on surrounding
+    // whitespace (which it treats as invalid) while `isBlank()` was
+    // already masking the empty-after-trim case.
+    val trimmed = isoInstant.trim()
+    if (trimmed.isEmpty()) return null
+    runCatching { return Instant.parse(trimmed) }
 
     // Backend occasionally returns timestamps without seconds (e.g. "2024-10-16T17:00Z").
     // Retry after inserting ":00" before the timezone designator.
     val normalized = runCatching {
-        val tzStart = isoInstant.indexOfAny(charArrayOf('Z', '+', '-'), startIndex = 11)
+        val tzStart = trimmed.indexOfAny(charArrayOf('Z', '+', '-'), startIndex = 11)
         if (tzStart < 0) return@runCatching null
-        val head = isoInstant.substring(0, tzStart)
-        val tail = isoInstant.substring(tzStart)
+        val head = trimmed.substring(0, tzStart)
+        val tail = trimmed.substring(tzStart)
         val colonCount = head.count { it == ':' }
         when (colonCount) {
             1 -> head + ":00" + tail
@@ -48,7 +52,7 @@ fun hasWeekNotPassed(isoInstant: String): Boolean {
 @Composable
 fun formatReleasedAt(isoInstant: String): String {
     val updated = parseIsoInstantLenient(isoInstant)
-        ?: return isoInstant.substringBefore('T').ifBlank { "" }
+        ?: return isoInstant.trim().substringBefore('T').ifBlank { "" }
     val now = Instant.fromEpochMilliseconds(Clock.System.now().toEpochMilliseconds())
     val diff: Duration = now - updated
 

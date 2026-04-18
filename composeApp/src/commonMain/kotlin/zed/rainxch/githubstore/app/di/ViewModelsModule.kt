@@ -20,11 +20,15 @@ val viewModelsModule =
         viewModelOf(::AppsViewModel)
         viewModelOf(::AuthenticationViewModel)
         viewModel { params ->
+            // Indexed access because `ownerParam` and `repoParam` are both
+            // Strings — positional `params.get()` would silently pick the
+            // first matching by type and could swap the two if Koin ever
+            // changes its resolution order.
             DetailsViewModel(
-                repositoryId = params.get(),
-                ownerParam = params.get(),
-                repoParam = params.get(),
-                isComingFromUpdate = params.get(),
+                repositoryId = params.get(0),
+                ownerParam = params.get(1),
+                repoParam = params.get(2),
+                isComingFromUpdate = params.get(3),
                 detailsRepository = get(),
                 downloader = get(),
                 installer = get(),

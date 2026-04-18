@@ -98,6 +98,15 @@ class TelemetryRepositoryImpl(
     // ── batching ────────────────────────────────────────────────────
 
     override suspend fun flushPending() {
+        // Re-check consent: the user may have disabled telemetry between
+        // when these events were enqueued and now. Respect the current
+        // setting — withdrawn consent means the buffered events must
+        // never leave the device.
+        if (!telemetryEnabled()) {
+            bufferMutex.withLock { buffer.clear() }
+            return
+        }
+
         val pending = bufferMutex.withLock {
             if (buffer.isEmpty()) return
             val take = minOf(buffer.size, MAX_BATCH_SIZE)
@@ -111,14 +120,29 @@ class TelemetryRepositoryImpl(
 
         if (result.isFailure) {
             // Put events back at the front for retry next tick (bounded).
-            bufferMutex.withLock {
-                for (i in pending.indices.reversed()) {
-                    if (buffer.size < MAX_BUFFER_SIZE) buffer.addFirst(pending[i])
+            // If consent was revoked during the round-trip, drop them
+            // instead — the flight was already in-progress under the old
+            // consent, but re-adding would leak past the withdrawal.
+            if (telemetryEnabled()) {
+                bufferMutex.withLock {
+                    for (i in pending.indices.reversed()) {
+                        if (buffer.size < MAX_BUFFER_SIZE) buffer.addFirst(pending[i])
+                    }
                 }
+            } else {
+                bufferMutex.withLock { buffer.clear() }
             }
             logger.debug("Telemetry batch failed: ${result.exceptionOrNull()?.message}")
         }
     }
+
+    override suspend fun clearPending() {
+        bufferMutex.withLock { buffer.clear() }
+    }
+
+    private suspend fun telemetryEnabled(): Boolean =
+        runCatching { tweaksRepository.getTelemetryEnabled().first() }
+            .getOrDefault(false)
 
     // ── helpers ─────────────────────────────────────────────────────
 
@@ -131,9 +155,7 @@ class TelemetryRepositoryImpl(
         errorCode: String? = null,
     ) {
         appScope.launch {
-            val enabled = runCatching { tweaksRepository.getTelemetryEnabled().first() }
-                .getOrDefault(false)
-            if (!enabled) return@launch
+            if (!telemetryEnabled()) return@launch
 
             val deviceId = runCatching { deviceIdentity.getDeviceId() }.getOrNull() ?: return@launch
 

@@ -21,6 +21,7 @@ import zed.rainxch.core.data.dto.BackendRepoResponse
 import zed.rainxch.core.data.mappers.toDomain
 import zed.rainxch.core.data.mappers.toSummary
 import zed.rainxch.core.data.network.BackendApiClient
+import zed.rainxch.core.data.network.GitHubClientProvider
 import zed.rainxch.core.data.network.executeRequest
 import zed.rainxch.core.data.services.LocalizationManager
 import zed.rainxch.core.domain.logging.GitHubStoreLogger
@@ -32,14 +33,17 @@ import zed.rainxch.details.data.utils.ReadmeLocalizationHelper
 import zed.rainxch.details.data.utils.preprocessMarkdown
 import zed.rainxch.details.domain.model.RepoStats
 import zed.rainxch.details.domain.repository.DetailsRepository
+import kotlin.coroutines.cancellation.CancellationException
 
 class DetailsRepositoryImpl(
-    private val httpClient: HttpClient,
+    private val clientProvider: GitHubClientProvider,
     private val backendApiClient: BackendApiClient,
     private val localizationManager: LocalizationManager,
     private val logger: GitHubStoreLogger,
     private val cacheManager: CacheManager,
 ) : DetailsRepository {
+    private val httpClient: HttpClient get() = clientProvider.client
+
     @Serializable
     private data class CachedReadme(
         val content: String,
@@ -331,19 +335,36 @@ class DetailsRepositoryImpl(
         backendApiClient.getRepo(owner, repo).getOrNull()?.let { backendRepo ->
             logger.debug("Backend hit for repo stats $owner/$repo")
 
-            val githubInfo = runCatching {
-                httpClient.executeRequest<RepoInfoNetwork> {
-                    get("/repos/$owner/$repo") {
-                        header(HttpHeaders.Accept, "application/vnd.github+json")
-                    }
-                }.getOrNull()
-            }.getOrNull()
+            // Explicit try/catch (not runCatching) so cancellation
+            // propagates — runCatching would swallow it and break
+            // structured concurrency.
+            val githubInfo =
+                try {
+                    httpClient.executeRequest<RepoInfoNetwork> {
+                        get("/repos/$owner/$repo") {
+                            header(HttpHeaders.Accept, "application/vnd.github+json")
+                        }
+                    }.getOrNull()
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    logger.debug("GitHub enrichment failed for $owner/$repo: ${e.message}")
+                    null
+                }
+
+            // If the GitHub enrichment didn't land, reuse the stale
+            // cached openIssues/license from a previous successful
+            // resolve. Prevents a transient GitHub failure from
+            // clobbering real values with zeros/nulls.
+            val stale = if (githubInfo == null) cacheManager.getStale<RepoStats>(cacheKey) else null
 
             val result = RepoStats(
                 stars = backendRepo.stargazersCount,
                 forks = backendRepo.forksCount,
-                openIssues = githubInfo?.openIssues ?: 0,
-                license = githubInfo?.license?.spdxId ?: githubInfo?.license?.name,
+                openIssues = githubInfo?.openIssues ?: stale?.openIssues ?: 0,
+                license = githubInfo?.license?.spdxId
+                    ?: githubInfo?.license?.name
+                    ?: stale?.license,
                 totalDownloads = backendRepo.downloadCount,
             )
             cacheManager.put(cacheKey, result, REPO_STATS)

@@ -24,4 +24,11 @@ interface TelemetryRepository {
     fun recordUnfavorited(repoId: Long)
 
     suspend fun flushPending()
+
+    /**
+     * Drops any buffered events that have not yet been transmitted.
+     * Called when the user resets their analytics ID so events that
+     * were recorded under the old ID don't leak out attached to it.
+     */
+    suspend fun clearPending()
 }
