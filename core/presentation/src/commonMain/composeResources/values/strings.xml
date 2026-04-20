@@ -116,6 +116,11 @@
 
     <!-- Sections -->
     <string name="section_appearance">APPEARANCE</string>
+    <string name="section_language">LANGUAGE</string>
+    <string name="language_intro">Override the app\'s UI language. Applies instantly — no restart needed.</string>
+    <string name="language_picker_title">App language</string>
+    <string name="language_picker_description">Changes menus, buttons, and messages throughout the app. Does not change content coming from GitHub.</string>
+    <string name="language_follow_system">Follow system</string>
     <string name="section_network">NETWORK</string>
     <string name="section_about">ABOUT</string>
 
