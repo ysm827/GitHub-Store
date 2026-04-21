@@ -44,13 +44,16 @@
 <br/>
 
 
-<p align="center"> 
- <a href="https://trendshift.io/repositories/22313" target="_blank"><img src="https://trendshift.io/api/badge/repositories/22313" alt="OpenHub-Store%2FGitHub-Store | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
- 
-<a href="https://hellogithub.com/en/repository/OpenHub-Store/GitHub-Store" target="_blank">
-  <img src="https://abroad.hellogithub.com/v1/widgets/recommend.svg?rid=a95f4a4830bc4a69b56f96ac7efaacf8&claim_uid=sOz1lfiG4ARQYIK&theme=dark" alt="Featured｜HelloGitHub" style="width: 250px; height: 54px;" width="250" height="54" />
-</a>
-</p>
+<table align="center">
+  <tr>
+    <td>
+      <a href="https://trendshift.io/repositories/22313" target="_blank"><img src="https://trendshift.io/api/badge/repositories/22313" alt="OpenHub-Store%2FGitHub-Store | Trendshift" width="250" height="55"/></a>
+    </td>
+    <td>
+      <a href="https://hellogithub.com/en/repository/OpenHub-Store/GitHub-Store" target="_blank"><img src="https://abroad.hellogithub.com/v1/widgets/recommend.svg?rid=a95f4a4830bc4a69b56f96ac7efaacf8&claim_uid=sOz1lfiG4ARQYIK&theme=dark" alt="Featured｜HelloGitHub" width="250" height="54"/></a>
+    </td>
+  </tr>
+</table>
 
 <div align="center">
 
@@ -66,29 +69,15 @@ Built with Kotlin Multiplatform and Compose Multiplatform for Android and Deskto
 
 <div align="center">
 
-### 🩵 What's next for GitHub Store
+### 📺 Meet the Developer
 
-The next major version of GitHub Store will be fully rewritten with
-**[RikkaUI](https://rikkaui.dev)** — a shadcn/ui-inspired component library
-for Compose Multiplatform I'm building in parallel.
+I made a video introducing myself and sharing what's next for GitHub Store.
 
-Zero Material3. Full ownership. Beautiful by default.
+**[Watch on YouTube →](https://www.youtube.com/watch?v=iT1cok4-Txs)** | **[Watch on Bilibili →](https://www.bilibili.tv/en/video/4799266946423296)**
 
-**[Follow the progress →](https://rikkaui.dev)**
+Help shape the future of GitHub Store — take this 2-minute survey:
 
-</div>
-
----
-
-<div align="center">
-
-### 🎨 Powering the icons
-
-The next GitHub Store will use
-**[RikkaIcons](https://github.com/rainxchzed/RikkaIcons)** — semantic icon tokens for Compose Multiplatform.
-One API, any icon pack. Swap your entire icon set in one line.
-
-**[Browse the library →](https://github.com/rainxchzed/RikkaIcons)**
+**[📋 Take the Survey →](tally.so/r/q4Ed88)**
 
 </div>
 
