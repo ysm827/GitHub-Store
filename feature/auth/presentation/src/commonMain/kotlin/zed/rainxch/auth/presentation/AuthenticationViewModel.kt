@@ -19,6 +19,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.jetbrains.compose.resources.getString
+import zed.rainxch.auth.domain.repository.AuthPath
 import zed.rainxch.auth.domain.repository.AuthenticationRepository
 import zed.rainxch.auth.domain.repository.DevicePollResult
 import zed.rainxch.auth.presentation.mapper.toUi
@@ -41,6 +42,7 @@ class AuthenticationViewModel(
     private var countdownJob: Job? = null
     private var pollingJob: Job? = null
     private var pollingIntervalMs: Long = DEFAULT_POLL_INTERVAL_SEC * 1000L
+    private var authPath: AuthPath = AuthPath.Backend
 
     private val _state: MutableStateFlow<AuthenticationState> =
         MutableStateFlow(AuthenticationState())
@@ -179,10 +181,14 @@ class AuthenticationViewModel(
     private fun startLogin() {
         viewModelScope.launch {
             try {
-                val start =
+                val flowStart =
                     withContext(Dispatchers.IO) {
                         authenticationRepository.startDeviceFlow()
                     }
+
+                val start = flowStart.start
+                authPath = flowStart.path
+                logger.debug("Device flow started via path=$authPath")
 
                 val startUi = start.toUi()
 
@@ -198,7 +204,7 @@ class AuthenticationViewModel(
                         )
                     }
 
-                    saveToSavedState(start.deviceCode, startUi)
+                    saveToSavedState(start.deviceCode, startUi, authPath)
                     startCountdown(start.expiresInSec)
                     startPolling(start.deviceCode)
 
@@ -260,13 +266,19 @@ class AuthenticationViewModel(
     private suspend fun doPoll(deviceCode: String) {
         _state.update { it.copy(isPolling = true) }
         try {
-            logger.debug("Polling device token (code=${deviceCode.take(8)}..., interval=${pollingIntervalMs}ms)")
-            val result =
+            logger.debug("Polling device token (code=${deviceCode.take(8)}..., interval=${pollingIntervalMs}ms, path=$authPath)")
+            val outcome =
                 withContext(Dispatchers.IO) {
-                    authenticationRepository.pollDeviceTokenOnce(deviceCode)
+                    authenticationRepository.pollDeviceTokenOnce(deviceCode, authPath)
                 }
 
-            when (result) {
+            if (outcome.path != authPath) {
+                logger.debug("Auth path escalated from $authPath to ${outcome.path}")
+                authPath = outcome.path
+                savedStateHandle[KEY_AUTH_PATH] = authPath.name
+            }
+
+            when (val result = outcome.result) {
                 is DevicePollResult.Success -> {
                     logger.debug("Poll success — token received, navigating")
                     pollingJob?.cancel()
@@ -324,6 +336,7 @@ class AuthenticationViewModel(
     private fun saveToSavedState(
         deviceCode: String,
         startUi: GithubDeviceStartUi,
+        path: AuthPath,
     ) {
         savedStateHandle[KEY_DEVICE_CODE] = deviceCode
         savedStateHandle[KEY_USER_CODE] = startUi.userCode
@@ -332,6 +345,7 @@ class AuthenticationViewModel(
         savedStateHandle[KEY_INTERVAL_SEC] = startUi.intervalSec
         savedStateHandle[KEY_EXPIRES_IN_SEC] = startUi.expiresInSec
         savedStateHandle[KEY_START_TIME_MILLIS] = System.currentTimeMillis()
+        savedStateHandle[KEY_AUTH_PATH] = path.name
     }
 
     private fun clearSavedState() {
@@ -345,6 +359,13 @@ class AuthenticationViewModel(
         val expiresInSec = savedStateHandle.get<Int>(KEY_EXPIRES_IN_SEC) ?: return
         val intervalSec = savedStateHandle.get<Int>(KEY_INTERVAL_SEC) ?: 5
         val startTimeMillis = savedStateHandle.get<Long>(KEY_START_TIME_MILLIS) ?: return
+        val restoredPath =
+            savedStateHandle.get<String>(KEY_AUTH_PATH)?.let {
+                runCatching { AuthPath.valueOf(it) }.getOrNull()
+            } ?: run {
+                clearSavedState()
+                return
+            }
 
         val elapsedSec = ((System.currentTimeMillis() - startTimeMillis) / 1000).toInt()
         val remainingSec = expiresInSec - elapsedSec
@@ -353,6 +374,9 @@ class AuthenticationViewModel(
             clearSavedState()
             return
         }
+
+        authPath = restoredPath
+        logger.debug("Restored auth session on path=$authPath")
 
         val startUi =
             GithubDeviceStartUi(
@@ -458,6 +482,7 @@ class AuthenticationViewModel(
         private const val KEY_INTERVAL_SEC = "auth_interval_sec"
         private const val KEY_EXPIRES_IN_SEC = "auth_expires_in_sec"
         private const val KEY_START_TIME_MILLIS = "auth_start_time_millis"
+        private const val KEY_AUTH_PATH = "auth_path"
         private const val DEFAULT_POLL_INTERVAL_SEC = 5
 
         private val SAVED_STATE_KEYS =
@@ -469,6 +494,7 @@ class AuthenticationViewModel(
                 KEY_INTERVAL_SEC,
                 KEY_EXPIRES_IN_SEC,
                 KEY_START_TIME_MILLIS,
+                KEY_AUTH_PATH,
             )
     }
 }

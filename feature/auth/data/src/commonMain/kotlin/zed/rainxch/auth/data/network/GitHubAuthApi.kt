@@ -1,7 +1,6 @@
 package zed.rainxch.auth.data.network
 
 import io.ktor.client.HttpClient
-import io.ktor.client.call.body
 import io.ktor.client.plugins.HttpRequestRetry
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
@@ -22,6 +21,11 @@ import kotlinx.serialization.json.Json
 import zed.rainxch.core.data.dto.GithubDeviceStartDto
 import zed.rainxch.core.data.dto.GithubDeviceTokenErrorDto
 import zed.rainxch.core.data.dto.GithubDeviceTokenSuccessDto
+
+class BackendHttpException(
+    val statusCode: Int,
+    message: String,
+) : Exception(message)
 
 object GitHubAuthApi {
     private val json =
@@ -48,7 +52,7 @@ object GitHubAuthApi {
         }
     }
 
-    suspend fun startDeviceFlow(clientId: String): GithubDeviceStartDto =
+    suspend fun startDeviceFlowDirect(clientId: String): GithubDeviceStartDto =
         withRetry(maxAttempts = 3, initialDelay = 1000) {
             val res =
                 http.post("https://github.com/login/device/code") {
@@ -91,7 +95,7 @@ object GitHubAuthApi {
             }
         }
 
-    suspend fun pollDeviceToken(
+    suspend fun pollDeviceTokenDirect(
         clientId: String,
         deviceCode: String,
     ): Result<GithubDeviceTokenSuccessDto> {
@@ -119,7 +123,6 @@ object GitHubAuthApi {
             val status = res.status
             val text = res.bodyAsText()
 
-
             if (status !in HttpStatusCode.OK..HttpStatusCode.MultipleChoices) {
                 return Result.failure(
                     IllegalStateException(
@@ -132,7 +135,7 @@ object GitHubAuthApi {
                 val ok = json.decodeFromString(GithubDeviceTokenSuccessDto.serializer(), text)
 
                 Result.success(ok)
-            } catch (e: Throwable) {
+            } catch (_: Throwable) {
                 val err = json.decodeFromString(GithubDeviceTokenErrorDto.serializer(), text)
                 val message =
                     buildString {
@@ -147,10 +150,118 @@ object GitHubAuthApi {
                 Result.failure(IllegalStateException(message))
             }
         } catch (e: Exception) {
-
             Result.failure(e)
         }
     }
+
+    suspend fun startDeviceFlowViaBackend(backendOrigin: String): GithubDeviceStartDto {
+        val res =
+            http.post("$backendOrigin/v1/auth/device/start") {
+                accept(ContentType.Application.Json)
+                headers.append(HttpHeaders.UserAgent, "GithubStore/1.0 (DeviceFlow)")
+                timeout {
+                    requestTimeoutMillis = 10_000
+                    socketTimeoutMillis = 10_000
+                }
+            }
+        val status = res.status
+        val requestId = res.headers[HEADER_REQUEST_ID]
+        val text = res.bodyAsText()
+        if (!status.isSuccessLike()) {
+            throw BackendHttpException(
+                statusCode = status.value,
+                message =
+                    "Backend device/start HTTP ${status.value} " +
+                        "${requestId.asRequestIdTag()}. Body: ${text.take(300)}",
+            )
+        }
+        return try {
+            json.decodeFromString(GithubDeviceStartDto.serializer(), text)
+        } catch (_: Throwable) {
+            try {
+                val err = json.decodeFromString(GithubDeviceTokenErrorDto.serializer(), text)
+                error(
+                    buildString {
+                        append(err.error)
+                        err.errorDescription?.let { append(": "); append(it) }
+                        append(' ')
+                        append(requestId.asRequestIdTag())
+                    }.trim(),
+                )
+            } catch (_: Throwable) {
+                error(
+                    "Unexpected response from backend device/start " +
+                        "${requestId.asRequestIdTag()}: ${text.take(300)}",
+                )
+            }
+        }
+    }
+
+    suspend fun pollDeviceTokenViaBackend(
+        backendOrigin: String,
+        deviceCode: String,
+    ): Result<GithubDeviceTokenSuccessDto> {
+        return try {
+            val res =
+                http.post("$backendOrigin/v1/auth/device/poll") {
+                    accept(ContentType.Application.Json)
+                    headers.append(HttpHeaders.UserAgent, "GithubStore/1.0 (DeviceFlow)")
+                    contentType(ContentType.Application.FormUrlEncoded)
+                    timeout {
+                        socketTimeoutMillis = 30_000
+                    }
+                    setBody(
+                        FormDataContent(
+                            Parameters.build {
+                                append("device_code", deviceCode)
+                            },
+                        ),
+                    )
+                }
+            val status = res.status
+            val requestId = res.headers[HEADER_REQUEST_ID]
+            val text = res.bodyAsText()
+
+            if (!status.isSuccessLike()) {
+                return Result.failure(
+                    BackendHttpException(
+                        statusCode = status.value,
+                        message =
+                            "Backend device/poll HTTP ${status.value} " +
+                                "${status.description} ${requestId.asRequestIdTag()}",
+                    ),
+                )
+            }
+
+            try {
+                Result.success(json.decodeFromString(GithubDeviceTokenSuccessDto.serializer(), text))
+            } catch (_: Throwable) {
+                val err = json.decodeFromString(GithubDeviceTokenErrorDto.serializer(), text)
+                val message =
+                    buildString {
+                        append(err.error)
+                        val desc = err.errorDescription
+                        if (!desc.isNullOrBlank()) {
+                            append(": ")
+                            append(desc)
+                        }
+                        append(' ')
+                        append(requestId.asRequestIdTag())
+                    }.trim()
+                Result.failure(IllegalStateException(message))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    private fun HttpStatusCode.isSuccessLike(): Boolean =
+        this in HttpStatusCode.OK..HttpStatusCode.MultipleChoices
+
+    private fun String?.asRequestIdTag(): String =
+        if (this.isNullOrBlank()) "(X-Request-ID=<none>)" else "(X-Request-ID=$this)"
+
+    private const val HEADER_REQUEST_ID = "X-Request-ID"
 
     private suspend fun <T> withRetry(
         maxAttempts: Int = 3,

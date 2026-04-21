@@ -199,7 +199,7 @@ class BackendApiClient(
         }
 
     companion object {
-        private const val BASE_URL = "https://api.github-store.org/v1/"
+        private const val BASE_URL = BACKEND_BASE_URL
         private const val X_GITHUB_TOKEN_HEADER = "X-GitHub-Token"
     }
 }

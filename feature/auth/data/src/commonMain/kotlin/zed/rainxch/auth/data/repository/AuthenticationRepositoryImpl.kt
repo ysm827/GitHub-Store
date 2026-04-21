@@ -1,5 +1,8 @@
 package zed.rainxch.auth.data.repository
 
+import io.ktor.client.network.sockets.ConnectTimeoutException
+import io.ktor.client.network.sockets.SocketTimeoutException
+import io.ktor.client.plugins.HttpRequestTimeoutException
 import kotlinx.coroutines.*
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -9,12 +12,18 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
+import zed.rainxch.auth.data.network.BackendHttpException
 import zed.rainxch.auth.data.network.GitHubAuthApi
+import zed.rainxch.auth.domain.repository.AuthPath
 import zed.rainxch.auth.domain.repository.AuthenticationRepository
+import zed.rainxch.auth.domain.repository.DeviceFlowStart
 import zed.rainxch.auth.domain.repository.DevicePollResult
+import zed.rainxch.auth.domain.repository.PollOutcome
 import zed.rainxch.core.data.data_source.TokenStore
+import zed.rainxch.core.data.dto.GithubDeviceTokenSuccessDto
 import zed.rainxch.core.data.mappers.toData
 import zed.rainxch.core.data.mappers.toDomain
+import zed.rainxch.core.data.network.BACKEND_ORIGIN
 import zed.rainxch.core.domain.logging.GitHubStoreLogger
 import zed.rainxch.core.domain.model.GithubDeviceStart
 import zed.rainxch.core.domain.model.GithubDeviceTokenSuccess
@@ -28,7 +37,7 @@ class AuthenticationRepositoryImpl(
     override val accessTokenFlow: Flow<String?>
         get() = tokenStore.tokenFlow().map { it?.accessToken }
 
-    override suspend fun startDeviceFlow(): GithubDeviceStart =
+    override suspend fun startDeviceFlow(): DeviceFlowStart =
         withContext(Dispatchers.IO) {
             val clientId = BuildKonfig.GITHUB_CLIENT_ID
             require(clientId.isNotBlank()) {
@@ -36,16 +45,38 @@ class AuthenticationRepositoryImpl(
             }
 
             try {
-                val result = GitHubAuthApi.startDeviceFlow(clientId)
-                logger.debug("✅ Device flow started. User code: ${result.userCode}")
-                result.toDomain()
-            } catch (e: Exception) {
-                logger.debug("❌ Failed to start device flow: ${e.message}")
-                throw Exception(
-                    "Failed to start GitHub authentication. " +
-                        "Please check your internet connection and try again.",
-                    e,
-                )
+                val dto = GitHubAuthApi.startDeviceFlowViaBackend(BACKEND_ORIGIN)
+                logger.debug("✅ Device flow started via Backend. User code: ${dto.userCode}")
+                DeviceFlowStart(dto.toDomain(), AuthPath.Backend)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Throwable) {
+                if (e.isAuthInfrastructureError()) {
+                    logger.debug(
+                        "Backend device/start failed (${e::class.simpleName}: ${e.message}) — falling back to Direct",
+                    )
+                    try {
+                        val dto = GitHubAuthApi.startDeviceFlowDirect(clientId)
+                        logger.debug("✅ Device flow started via Direct. User code: ${dto.userCode}")
+                        DeviceFlowStart(dto.toDomain(), AuthPath.Direct)
+                    } catch (inner: CancellationException) {
+                        throw inner
+                    } catch (inner: Throwable) {
+                        logger.debug("❌ Direct device/start also failed: ${inner.message}")
+                        throw Exception(
+                            "Failed to start GitHub authentication. " +
+                                "Please check your internet connection and try again.",
+                            inner,
+                        )
+                    }
+                } else {
+                    logger.debug("❌ Backend device/start returned non-infra error: ${e.message}")
+                    throw Exception(
+                        "Failed to start GitHub authentication. " +
+                            "Please check your internet connection and try again.",
+                        e,
+                    )
+                }
             }
         }
 
@@ -73,7 +104,7 @@ class AuthenticationRepositoryImpl(
                 }
 
                 try {
-                    val res = GitHubAuthApi.pollDeviceToken(clientId, start.deviceCode)
+                    val res = GitHubAuthApi.pollDeviceTokenDirect(clientId, start.deviceCode)
                     val success = res.getOrNull()?.toDomain()
 
                     if (success != null) {
@@ -224,64 +255,94 @@ class AuthenticationRepositoryImpl(
         }
     }
 
-    override suspend fun pollDeviceTokenOnce(deviceCode: String): DevicePollResult =
+    override suspend fun pollDeviceTokenOnce(
+        deviceCode: String,
+        path: AuthPath,
+    ): PollOutcome =
         withContext(Dispatchers.IO) {
             val clientId = BuildKonfig.GITHUB_CLIENT_ID
-            try {
-                val res = GitHubAuthApi.pollDeviceToken(clientId, deviceCode)
-                val success = res.getOrNull()?.toDomain()
 
-                if (success != null) {
-                    logger.debug("✅ Single poll: Token received! Saving...")
-                    saveTokenWithVerification(success)
-                    DevicePollResult.Success(success)
-                } else {
-                    val error = res.exceptionOrNull()
-                    val errorMsg = (error?.message ?: "").lowercase()
-
-                    when {
-                        "slow_down" in errorMsg -> {
-                            logger.debug("⚠️ GitHub says slow down")
-                            DevicePollResult.SlowDown
-                        }
-
-                        "authorization_pending" in errorMsg -> {
-                            DevicePollResult.Pending
-                        }
-
-                        "access_denied" in errorMsg -> {
-                            DevicePollResult.Failed(
-                                Exception("Authentication was denied. Please try again if this was a mistake."),
-                            )
-                        }
-
-                        "expired_token" in errorMsg ||
-                            "expired_device_code" in errorMsg ||
-                            "token_expired" in errorMsg -> {
-                            DevicePollResult.Failed(
-                                Exception("Authorization code expired. Please try again."),
-                            )
-                        }
-
-                        "bad_verification_code" in errorMsg ||
-                            "incorrect_device_code" in errorMsg -> {
-                            DevicePollResult.Failed(
-                                Exception("Invalid verification code. Please restart authentication."),
-                            )
-                        }
-
-                        else -> {
-                            logger.debug("⚠️ Single poll unknown error: $errorMsg")
-                            DevicePollResult.Pending
-                        }
-                    }
+            val primaryResult =
+                when (path) {
+                    AuthPath.Backend -> GitHubAuthApi.pollDeviceTokenViaBackend(BACKEND_ORIGIN, deviceCode)
+                    AuthPath.Direct -> GitHubAuthApi.pollDeviceTokenDirect(clientId, deviceCode)
                 }
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                logger.debug("⚠️ Single poll network error: ${e.message}")
+
+            val primaryError = primaryResult.exceptionOrNull()
+            if (path == AuthPath.Backend && primaryError != null && primaryError.isAuthInfrastructureError()) {
+                logger.debug(
+                    "Backend poll infra error (${primaryError::class.simpleName}: " +
+                        "${primaryError.message}) — escalating to Direct for rest of session",
+                )
+                val fallbackResult = GitHubAuthApi.pollDeviceTokenDirect(clientId, deviceCode)
+                return@withContext PollOutcome(interpretPollResult(fallbackResult), AuthPath.Direct)
+            }
+
+            PollOutcome(interpretPollResult(primaryResult), path)
+        }
+
+    private suspend fun interpretPollResult(
+        res: Result<GithubDeviceTokenSuccessDto>,
+    ): DevicePollResult {
+        val success = res.getOrNull()?.toDomain()
+
+        if (success != null) {
+            logger.debug("✅ Single poll: Token received! Saving...")
+            saveTokenWithVerification(success)
+            return DevicePollResult.Success(success)
+        }
+
+        val error = res.exceptionOrNull()
+        val errorMsg = (error?.message ?: "").lowercase()
+
+        return when {
+            "slow_down" in errorMsg -> {
+                logger.debug("⚠️ GitHub says slow down")
+                DevicePollResult.SlowDown
+            }
+
+            "authorization_pending" in errorMsg -> {
                 DevicePollResult.Pending
             }
+
+            "access_denied" in errorMsg -> {
+                DevicePollResult.Failed(
+                    Exception("Authentication was denied. Please try again if this was a mistake."),
+                )
+            }
+
+            "expired_token" in errorMsg ||
+                "expired_device_code" in errorMsg ||
+                "token_expired" in errorMsg -> {
+                DevicePollResult.Failed(
+                    Exception("Authorization code expired. Please try again."),
+                )
+            }
+
+            "bad_verification_code" in errorMsg ||
+                "incorrect_device_code" in errorMsg -> {
+                DevicePollResult.Failed(
+                    Exception("Invalid verification code. Please restart authentication."),
+                )
+            }
+
+            else -> {
+                logger.debug("❌ Single poll unrecognized error — surfacing as Failed: $errorMsg")
+                DevicePollResult.Failed(
+                    error ?: Exception("Authentication failed: unknown error"),
+                )
+            }
+        }
+    }
+
+    private fun Throwable.isAuthInfrastructureError(): Boolean =
+        when (this) {
+            is HttpRequestTimeoutException,
+            is SocketTimeoutException,
+            is ConnectTimeoutException,
+            -> true
+            is BackendHttpException -> statusCode in 500..599
+            else -> isNetworkError((message ?: "").lowercase())
         }
 
     private fun isNetworkError(errorMsg: String): Boolean =
