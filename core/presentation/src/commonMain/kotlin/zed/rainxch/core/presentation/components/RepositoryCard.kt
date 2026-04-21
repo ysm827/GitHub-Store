@@ -34,9 +34,13 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.buildAnnotatedString
@@ -73,11 +77,17 @@ fun RepositoryCard(
 ) {
     val uriHandler = LocalUriHandler.current
 
+    val contentAlpha by animateFloatAsState(
+        targetValue = if (discoveryRepositoryUi.isSeen) 0.55f else 1f,
+        animationSpec = tween(durationMillis = 300),
+        label = "seen_content_alpha",
+    )
+
     ExpressiveCard(
         onClick = onClick,
         modifier = modifier,
     ) {
-        Box {
+        Box(modifier = Modifier.alpha(contentAlpha)) {
             if (discoveryRepositoryUi.isFavourite) {
                 Icon(
                     imageVector = Icons.Default.Favorite,
