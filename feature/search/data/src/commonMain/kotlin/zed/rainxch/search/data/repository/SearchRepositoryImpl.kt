@@ -331,7 +331,8 @@ class SearchRepositoryImpl(
                 name.endsWith(".apk") ||
                     name.endsWith(".msi") || name.endsWith(".exe") ||
                     name.endsWith(".dmg") || name.endsWith(".pkg") ||
-                    name.endsWith(".appimage") || name.endsWith(".deb") || name.endsWith(".rpm")
+                    name.endsWith(".appimage") || name.endsWith(".deb") ||
+                    name.endsWith(".rpm") || name.endsWith(".pkg.tar.zst")
             }
 
             DiscoveryPlatform.Android -> {
@@ -347,7 +348,8 @@ class SearchRepositoryImpl(
             }
 
             DiscoveryPlatform.Linux -> {
-                name.endsWith(".appimage") || name.endsWith(".deb") || name.endsWith(".rpm")
+                name.endsWith(".appimage") || name.endsWith(".deb") ||
+                    name.endsWith(".rpm") || name.endsWith(".pkg.tar.zst")
             }
         }
     }

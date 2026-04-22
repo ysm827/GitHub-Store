@@ -262,7 +262,13 @@ private fun derivePlatformsFromAssets(release: GithubRelease?): List<DiscoveryPl
         if (names.any { it.endsWith(".apk") }) add(DiscoveryPlatform.Android)
         if (names.any { it.endsWith(".exe") || it.endsWith(".msi") }) add(DiscoveryPlatform.Windows)
         if (names.any { it.endsWith(".dmg") || it.endsWith(".pkg") }) add(DiscoveryPlatform.Macos)
-        if (names.any { it.endsWith(".appimage") || it.endsWith(".deb") || it.endsWith(".rpm") }) {
+        if (names.any {
+                it.endsWith(".appimage") ||
+                    it.endsWith(".deb") ||
+                    it.endsWith(".rpm") ||
+                    it.endsWith(".pkg.tar.zst")
+            }
+        ) {
             add(
                 DiscoveryPlatform.Linux,
             )

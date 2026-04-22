@@ -92,7 +92,10 @@ class DesktopInstaller(
                 }
 
                 Platform.LINUX -> {
-                    name.endsWith(".appimage") || name.endsWith(".deb") || name.endsWith(".rpm")
+                    name.endsWith(".appimage") ||
+                        name.endsWith(".deb") ||
+                        name.endsWith(".rpm") ||
+                        name.endsWith(".pkg.tar.zst")
                 }
             }
 
@@ -119,17 +122,23 @@ class DesktopInstaller(
                 }
 
                 Platform.LINUX -> {
+                    // Flatpak sandbox prefers native packages over AppImage
+                    // because AppImages inside Flatpak require extra permission
+                    // dances. Outside Flatpak we prefer AppImage — portable,
+                    // no sudo needed.
                     if (isRunningInFlatpak) {
                         when (linuxPackageType) {
-                            LinuxPackageType.DEB -> listOf(".deb", ".appimage", ".rpm")
-                            LinuxPackageType.RPM -> listOf(".rpm", ".appimage", ".deb")
-                            LinuxPackageType.UNIVERSAL -> listOf(".appimage", ".deb", ".rpm")
+                            LinuxPackageType.DEB -> listOf(".deb", ".appimage", ".rpm", ".pkg.tar.zst")
+                            LinuxPackageType.RPM -> listOf(".rpm", ".appimage", ".deb", ".pkg.tar.zst")
+                            LinuxPackageType.ARCH -> listOf(".pkg.tar.zst", ".appimage", ".deb", ".rpm")
+                            LinuxPackageType.UNIVERSAL -> listOf(".appimage", ".deb", ".rpm", ".pkg.tar.zst")
                         }
                     } else {
                         when (linuxPackageType) {
-                            LinuxPackageType.DEB -> listOf(".appimage", ".deb", ".rpm")
-                            LinuxPackageType.RPM -> listOf(".appimage", ".rpm", ".deb")
-                            LinuxPackageType.UNIVERSAL -> listOf(".appimage", ".deb", ".rpm")
+                            LinuxPackageType.DEB -> listOf(".appimage", ".deb", ".rpm", ".pkg.tar.zst")
+                            LinuxPackageType.RPM -> listOf(".appimage", ".rpm", ".deb", ".pkg.tar.zst")
+                            LinuxPackageType.ARCH -> listOf(".appimage", ".pkg.tar.zst", ".deb", ".rpm")
+                            LinuxPackageType.UNIVERSAL -> listOf(".appimage", ".deb", ".rpm", ".pkg.tar.zst")
                         }
                     }
                 }
@@ -231,6 +240,23 @@ class DesktopInstaller(
                     Logger.d { "Detected RPM-based distribution: $id" }
                     return LinuxPackageType.RPM
                 }
+
+                if (id in
+                    listOf(
+                        "arch",
+                        "manjaro",
+                        "endeavouros",
+                        "artix",
+                        "cachyos",
+                        "garuda",
+                        "arcolinux",
+                        "parabola",
+                    ) ||
+                    idLike.contains("arch")
+                ) {
+                    Logger.d { "Detected Arch-based distribution: $id" }
+                    return LinuxPackageType.ARCH
+                }
             }
 
             if (commandExists("apt") || commandExists("apt-get")) {
@@ -251,6 +277,11 @@ class DesktopInstaller(
             if (commandExists("zypper")) {
                 Logger.d { "Detected package manager: zypper" }
                 return LinuxPackageType.RPM
+            }
+
+            if (commandExists("pacman")) {
+                Logger.d { "Detected package manager: pacman" }
+                return LinuxPackageType.ARCH
             }
 
             Logger.d { "Could not determine package type, defaulting to UNIVERSAL" }
@@ -292,6 +323,22 @@ class DesktopInstaller(
         ) {
             Logger.d { "Host is RPM-based: $id" }
             return LinuxPackageType.RPM
+        }
+
+        if (id in listOf(
+                "arch",
+                "manjaro",
+                "endeavouros",
+                "artix",
+                "cachyos",
+                "garuda",
+                "arcolinux",
+                "parabola",
+            ) ||
+            idLike.contains("arch")
+        ) {
+            Logger.d { "Host is Arch-based: $id" }
+            return LinuxPackageType.ARCH
         }
 
         Logger.d { "Could not classify host distro, defaulting to UNIVERSAL" }
@@ -374,7 +421,12 @@ class DesktopInstaller(
         return when (platform) {
             Platform.WINDOWS -> ext in listOf("msi", "exe")
             Platform.MACOS -> ext in listOf("dmg", "pkg")
-            Platform.LINUX -> ext in listOf("appimage", "deb", "rpm")
+            // "pkg.tar.zst" keeps the literal double-dotted form the Arch
+            // convention uses. Dispatch below checks the full filename
+            // suffix anyway, but callers that only have the ext token
+            // (e.g. file-extension-only classification paths) would see
+            // "zst" on its own. Accept "pkg.tar.zst" and bare "zst" both.
+            Platform.LINUX -> ext in listOf("appimage", "deb", "rpm", "pkg.tar.zst", "zst")
             else -> false
         }
     }
@@ -461,6 +513,42 @@ class DesktopInstaller(
     ) {
         Logger.i { "Running in Flatpak sandbox — delegating installation to host system" }
         Logger.i { "File: ${file.absolutePath} (.$ext)" }
+
+        // Arch packages use the double extension `.pkg.tar.zst`. Callers
+        // may pass either "pkg.tar.zst" or just "zst" via `ext` depending
+        // on which classification path computed it, so gate on the
+        // filename directly — same authoritative check installLinux uses.
+        val nameLower = file.name.lowercase()
+        if (nameLower.endsWith(".pkg.tar.zst")) {
+            Logger.d { "Opening .pkg.tar.zst package via xdg-open portal for host installation" }
+            try {
+                val process = ProcessBuilder("xdg-open", file.absolutePath).start()
+                val exitCode = process.waitFor()
+                if (exitCode == 0) {
+                    Logger.i { "Arch package opened on host system for installation" }
+                    showFlatpakNotification(
+                        title = "Package Ready to Install",
+                        message = "The Arch package has been opened in your system's " +
+                            "package manager. Follow the prompts to complete installation.",
+                    )
+                } else {
+                    Logger.w { "xdg-open exited with code $exitCode" }
+                    showFlatpakNotification(
+                        title = "Installation",
+                        message = "Please open this .pkg.tar.zst file with your package manager.",
+                    )
+                    openInFileManager(file)
+                }
+            } catch (e: Exception) {
+                Logger.w { "Failed to open .pkg.tar.zst via xdg-open: ${e.message}" }
+                showFlatpakNotification(
+                    title = "Download Complete",
+                    message = "Please install manually: sudo pacman -U <path>",
+                )
+                openInFileManager(file)
+            }
+            return
+        }
 
         when (ext) {
             "deb", "rpm" -> {
@@ -688,6 +776,17 @@ class DesktopInstaller(
         file: File,
         ext: String,
     ) {
+        // The `ext` parameter is just the final extension token, but
+        // Arch packages use the double-dotted form `.pkg.tar.zst`. So
+        // look at the full filename when routing to pacman — a bare
+        // `.zst` on a non-pacman-shaped filename is genuinely ambiguous
+        // and we shouldn't hand it to pacman.
+        val nameLower = file.name.lowercase()
+        if (nameLower.endsWith(".pkg.tar.zst")) {
+            installPacmanPackage(file)
+            return
+        }
+
         when (ext) {
             "appimage" -> {
                 installAppImage(file)
@@ -884,6 +983,157 @@ class DesktopInstaller(
         }
 
         throw IOException("Could not install RPM package. Please install it manually.")
+    }
+
+    /**
+     * Wraps a string for safe embedding inside a POSIX shell
+     * single-quoted context. Handles embedded single quotes via the
+     * `'\''` closing-escaping-reopening trick.
+     *
+     *   `foo`          → `'foo'`
+     *   `foo'bar`      → `'foo'\''bar'`
+     *   `don't panic`  → `'don'\''t panic'`
+     *
+     * Use this whenever a filename (or any externally-sourced string)
+     * needs to be interpolated into a shell command that ends up being
+     * executed — terminal command builders, `sh -c` invocations, etc.
+     */
+    private fun shellQuoteSingleQuotes(s: String): String =
+        "'" + s.replace("'", "'\\''") + "'"
+
+    private fun installPacmanPackage(file: File) {
+        Logger.d { "Installing pacman package: ${file.absolutePath}" }
+
+        // Wrong-distro case: a `.pkg.tar.zst` on a non-Arch system is
+        // effectively impossible to install cleanly (no package manager
+        // knows the format, and conversion tools like `debtap` are
+        // Arch→Debian not the other way, and require user setup to
+        // seed their DB first). Show the user a clear terminal message
+        // instead of silently attempting a path that will fail.
+        if (linuxPackageType != LinuxPackageType.ARCH) {
+            Logger.w { "Pacman package (.pkg.tar.zst) on non-Arch system (type=$linuxPackageType)." }
+            openTerminalForPacmanIncompatible(file.absolutePath)
+            return
+        }
+
+        // argv-list invocation — no shell involved, so filenames with
+        // special chars are passed safely. No `sh -c` fallback needed
+        // here because pacman -U doesn't need any shell-level chaining
+        // (unlike DEB's `dpkg || apt-get install -f`).
+        val installMethods =
+            listOf(
+                listOf("pkexec", "pacman", "-U", "--noconfirm", file.absolutePath),
+                null,
+            )
+
+        for (method in installMethods) {
+            if (method == null) {
+                openTerminalForPacmanInstall(file.absolutePath)
+                return
+            }
+
+            try {
+                Logger.d { "Trying installation method: ${method.joinToString(" ")}" }
+                val process = ProcessBuilder(method).start()
+                val exitCode = process.waitFor()
+
+                if (exitCode == 0) {
+                    Logger.d { "Pacman package installed successfully" }
+                    tryShowNotification("Installation Complete", "Package installed successfully")
+                    return
+                } else {
+                    Logger.w { "Installation method failed with exit code: $exitCode" }
+                }
+            } catch (e: IOException) {
+                Logger.w { "Installation method not available: ${e.message}" }
+            }
+        }
+
+        throw IOException("Could not install pacman package. Please install it manually.")
+    }
+
+    private fun openTerminalForPacmanInstall(filePath: String) {
+        Logger.d { "Opening terminal for pacman -U install" }
+
+        val availableTerminals = detectAvailableTerminals()
+        val quoted = shellQuoteSingleQuotes(filePath)
+
+        if (availableTerminals.isEmpty()) {
+            // Notification body is user-visible text, not a shell command,
+            // so the raw path is fine to display here.
+            tryShowNotification(
+                "Install via Terminal",
+                "Run: sudo pacman -U $quoted",
+            )
+            throw IOException("No terminal emulator found to run pacman install.")
+        }
+
+        val command =
+            buildString {
+                append("echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'; ")
+                append("echo 'Installing Arch Package'; ")
+                append("echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'; ")
+                append("echo ''; ")
+                append("echo 'You will be prompted for your sudo password.'; ")
+                append("echo ''; ")
+                append("sudo pacman -U $quoted; ")
+                append("EXIT=\$?; ")
+                append("echo ''; ")
+                append("if [ \$EXIT -eq 0 ]; then ")
+                append("echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'; ")
+                append("echo 'Installation Complete!'; ")
+                append("echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'; ")
+                append("else ")
+                append("echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'; ")
+                append("echo 'Installation Failed (exit \$EXIT)'; ")
+                append("echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'; ")
+                append("fi; ")
+                append("echo ''; ")
+                append("echo 'Press Enter to close...'; read")
+            }
+
+        runCommandInTerminal(command, availableTerminals)
+    }
+
+    private fun openTerminalForPacmanIncompatible(filePath: String) {
+        Logger.d { "Opening terminal to inform user .pkg.tar.zst is not installable on their distro" }
+
+        val availableTerminals = detectAvailableTerminals()
+
+        if (availableTerminals.isEmpty()) {
+            tryShowNotification(
+                "Wrong Package Type",
+                "This is an Arch Linux package (.pkg.tar.zst) — not supported on your distribution. Look for a .deb, .rpm, or .AppImage in the release.",
+            )
+            throw IOException(
+                "Arch packages (.pkg.tar.zst) can only be installed on Arch-based distributions.",
+            )
+        }
+
+        val quoted = shellQuoteSingleQuotes(filePath)
+        val command =
+            buildString {
+                append("echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'; ")
+                append("echo 'Wrong Package Format'; ")
+                append("echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'; ")
+                append("echo ''; ")
+                append("echo 'This file is an Arch Linux package (.pkg.tar.zst):'; ")
+                // printf treats %s as a plain arg, so the shell-escaped
+                // $quoted resolves back to the real path when printed —
+                // no literal escape characters bleed into the display.
+                append("printf '  %s\\n' $quoted; ")
+                append("echo ''; ")
+                append("echo 'Your system uses a different package format.'; ")
+                append("echo 'Please download the .deb, .rpm, or .AppImage variant'; ")
+                append("echo 'instead from the release page.'; ")
+                append("echo ''; ")
+                append("echo 'Press Enter to close...'; read")
+            }
+
+        runCommandInTerminal(command, availableTerminals)
+        throw IOException(
+            "Arch packages (.pkg.tar.zst) can only be installed on Arch-based distributions.",
+        )
     }
 
     private fun openTerminalForDebInstall(filePath: String) {

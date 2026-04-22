@@ -189,7 +189,7 @@ class DeveloperProfileRepositoryImpl(
 
                         Platform.LINUX -> {
                             name.endsWith(".appimage") || name.endsWith(".deb") ||
-                                name.endsWith(".rpm")
+                                name.endsWith(".rpm") || name.endsWith(".pkg.tar.zst")
                         }
                     }
                 }
