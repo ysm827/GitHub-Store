@@ -335,6 +335,60 @@ class AuthenticationRepositoryImpl(
         }
     }
 
+    override suspend fun signInWithPat(token: String): Result<Unit> =
+        withContext(Dispatchers.IO) {
+            val trimmed = token.trim()
+            // Format gatekeeping: trip the obvious paste-errors (trailing
+            // whitespace, partial copy) before we persist anything. Real
+            // validity is verified the first time the app makes an
+            // authenticated API call.
+            if (!looksLikePat(trimmed)) {
+                return@withContext Result.failure(
+                    IllegalArgumentException("Token format not recognized"),
+                )
+            }
+
+            val dto = GithubDeviceTokenSuccessDto(
+                accessToken = trimmed,
+                tokenType = "Bearer",
+                expiresIn = null,
+                scope = null,
+                refreshToken = null,
+                refreshTokenExpiresIn = null,
+                savedAtEpochMillis = System.currentTimeMillis(),
+            )
+
+            try {
+                saveTokenWithVerification(dto.toDomain())
+                logger.debug("✅ PAT saved")
+                Result.success(Unit)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Throwable) {
+                logger.warn("PAT save failed: ${e.message}")
+                Result.failure(e)
+            }
+        }
+
+    /**
+     * Accepts the two current GitHub PAT shapes:
+     *   - classic:        `ghp_` + ~36 chars
+     *   - fine-grained:   `github_pat_` + ~82 chars
+     * Also accepts legacy/server tokens (`ghs_`, `gho_`) for completeness
+     * in case someone pastes one. Intentionally lenient on length so a
+     * future GitHub format bump doesn't silently lock the app out.
+     */
+    private fun looksLikePat(token: String): Boolean {
+        if (token.length < 20) return false
+        if (token.any { it.isWhitespace() }) return false
+        return token.startsWith("ghp_") ||
+            token.startsWith("github_pat_") ||
+            token.startsWith("ghs_") ||
+            token.startsWith("gho_") ||
+            token.startsWith("ghu_") ||
+            token.startsWith("ghr_")
+    }
+
     private fun Throwable.isAuthInfrastructureError(): Boolean =
         when (this) {
             is HttpRequestTimeoutException,

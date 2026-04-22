@@ -26,4 +26,17 @@ sealed interface AuthenticationAction {
     data object PollNow : AuthenticationAction
 
     data object OnResumed : AuthenticationAction
+
+    // PAT paste flow
+    data object OpenPatSheet : AuthenticationAction
+
+    data object DismissPatSheet : AuthenticationAction
+
+    data class OnPatInputChanged(
+        val input: String,
+    ) : AuthenticationAction
+
+    data object SubmitPat : AuthenticationAction
+
+    data object OpenPatSettingsPage : AuthenticationAction
 }

@@ -28,17 +28,21 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.DoneAll
 import androidx.compose.material.icons.filled.OpenWith
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
@@ -46,9 +50,12 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -61,6 +68,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -77,6 +87,16 @@ import zed.rainxch.core.presentation.components.GithubStoreButton
 import zed.rainxch.core.presentation.theme.GithubStoreTheme
 import zed.rainxch.core.presentation.utils.ObserveAsEvents
 import zed.rainxch.githubstore.core.presentation.res.Res
+import zed.rainxch.githubstore.core.presentation.res.pat_cancel
+import zed.rainxch.githubstore.core.presentation.res.pat_hide
+import zed.rainxch.githubstore.core.presentation.res.pat_input_label
+import zed.rainxch.githubstore.core.presentation.res.pat_input_placeholder
+import zed.rainxch.githubstore.core.presentation.res.pat_open_settings
+import zed.rainxch.githubstore.core.presentation.res.pat_sheet_description
+import zed.rainxch.githubstore.core.presentation.res.pat_sheet_title
+import zed.rainxch.githubstore.core.presentation.res.pat_show
+import zed.rainxch.githubstore.core.presentation.res.pat_submit
+import zed.rainxch.githubstore.core.presentation.res.pat_use_token_instead
 import zed.rainxch.githubstore.core.presentation.res.app_icon
 import zed.rainxch.githubstore.core.presentation.res.auth_check_status
 import zed.rainxch.githubstore.core.presentation.res.auth_code_expires_in
@@ -222,6 +242,15 @@ fun AuthenticationScreen(
                 }
             }
         }
+
+        if (state.isPatSheetVisible) {
+            PatSignInSheet(
+                input = state.patInput,
+                error = state.patError,
+                isSubmitting = state.isPatSubmitting,
+                onAction = onAction,
+            )
+        }
     }
 }
 
@@ -304,6 +333,14 @@ private fun StateLoggedOut(onAction: (AuthenticationAction) -> Unit) {
         )
 
         Spacer(Modifier.height(8.dp))
+
+        TextButton(onClick = { onAction(AuthenticationAction.OpenPatSheet) }) {
+            Text(
+                text = stringResource(Res.string.pat_use_token_instead),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        }
 
         TextButton(onClick = { onAction(AuthenticationAction.SkipLogin) }) {
             Text(
@@ -689,6 +726,127 @@ private fun StateError(
         }
 
         Spacer(Modifier.weight(2f))
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun PatSignInSheet(
+    input: String,
+    error: String?,
+    isSubmitting: Boolean,
+    onAction: (AuthenticationAction) -> Unit,
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    var isMasked by remember { mutableStateOf(true) }
+
+    ModalBottomSheet(
+        onDismissRequest = { if (!isSubmitting) onAction(AuthenticationAction.DismissPatSheet) },
+        sheetState = sheetState,
+    ) {
+        Column(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp)
+                    .padding(bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(
+                text = stringResource(Res.string.pat_sheet_title),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+
+            Text(
+                text = stringResource(Res.string.pat_sheet_description),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
+            FilledTonalButton(
+                onClick = { onAction(AuthenticationAction.OpenPatSettingsPage) },
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(
+                    text = stringResource(Res.string.pat_open_settings),
+                    style = MaterialTheme.typography.labelLarge,
+                )
+            }
+
+            OutlinedTextField(
+                value = input,
+                onValueChange = { onAction(AuthenticationAction.OnPatInputChanged(it)) },
+                label = { Text(stringResource(Res.string.pat_input_label)) },
+                placeholder = { Text(stringResource(Res.string.pat_input_placeholder)) },
+                singleLine = true,
+                visualTransformation =
+                    if (isMasked) PasswordVisualTransformation() else VisualTransformation.None,
+                keyboardOptions =
+                    KeyboardOptions(
+                        autoCorrectEnabled = false,
+                        capitalization = KeyboardCapitalization.None,
+                    ),
+                isError = error != null,
+                enabled = !isSubmitting,
+                trailingIcon = {
+                    IconButton(onClick = { isMasked = !isMasked }) {
+                        Icon(
+                            imageVector =
+                                if (isMasked) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                            contentDescription =
+                                stringResource(
+                                    if (isMasked) Res.string.pat_show else Res.string.pat_hide,
+                                ),
+                        )
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+            )
+
+            if (error != null) {
+                Text(
+                    text = error,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+
+            Spacer(Modifier.height(4.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                TextButton(
+                    onClick = { onAction(AuthenticationAction.DismissPatSheet) },
+                    enabled = !isSubmitting,
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text(stringResource(Res.string.pat_cancel))
+                }
+
+                GithubStoreButton(
+                    text = stringResource(Res.string.pat_submit),
+                    onClick = { onAction(AuthenticationAction.SubmitPat) },
+                    modifier = Modifier.weight(1f),
+                    icon =
+                        if (isSubmitting) {
+                            {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(18.dp),
+                                    strokeWidth = 2.dp,
+                                    color = MaterialTheme.colorScheme.onPrimary,
+                                )
+                            }
+                        } else {
+                            null
+                        },
+                )
+            }
+        }
     }
 }
 

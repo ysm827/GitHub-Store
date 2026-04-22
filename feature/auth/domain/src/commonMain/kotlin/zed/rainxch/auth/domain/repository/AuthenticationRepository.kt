@@ -15,6 +15,19 @@ interface AuthenticationRepository {
         deviceCode: String,
         path: AuthPath,
     ): PollOutcome
+
+    /**
+     * Saves a user-supplied Personal Access Token as the active auth
+     * credential. No network validation at save time — an invalid or
+     * revoked token surfaces as a 401 on the first authenticated API
+     * call, identical to how expired device-flow tokens behave.
+     *
+     * Use case: users on networks where the browser-side of device flow
+     * (reaching `github.com/login/device`) is unreliable — they generate
+     * a PAT on a device where GitHub works, paste it here, and skip the
+     * browser dance entirely.
+     */
+    suspend fun signInWithPat(token: String): Result<Unit>
 }
 
 enum class AuthPath { Backend, Direct }

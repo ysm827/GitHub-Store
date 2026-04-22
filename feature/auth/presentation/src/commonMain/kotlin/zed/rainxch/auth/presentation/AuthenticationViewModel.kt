@@ -120,6 +120,97 @@ class AuthenticationViewModel(
             AuthenticationAction.OnResumed -> {
                 tryPollIfReady()
             }
+
+            AuthenticationAction.OpenPatSheet -> {
+                _state.update {
+                    it.copy(
+                        isPatSheetVisible = true,
+                        patInput = "",
+                        patError = null,
+                    )
+                }
+            }
+
+            AuthenticationAction.DismissPatSheet -> {
+                _state.update {
+                    it.copy(
+                        isPatSheetVisible = false,
+                        patInput = "",
+                        patError = null,
+                        isPatSubmitting = false,
+                    )
+                }
+            }
+
+            is AuthenticationAction.OnPatInputChanged -> {
+                _state.update {
+                    // Clear error on edit so it doesn't linger after the
+                    // user starts fixing the problem.
+                    it.copy(patInput = action.input, patError = null)
+                }
+            }
+
+            AuthenticationAction.SubmitPat -> {
+                submitPat()
+            }
+
+            AuthenticationAction.OpenPatSettingsPage -> {
+                openPatSettingsPage()
+            }
+        }
+    }
+
+    private fun submitPat() {
+        if (_state.value.isPatSubmitting) return
+        val input = _state.value.patInput.trim()
+        if (input.isEmpty()) {
+            viewModelScope.launch {
+                _state.update {
+                    it.copy(patError = getString(Res.string.pat_error_empty))
+                }
+            }
+            return
+        }
+
+        viewModelScope.launch {
+            _state.update { it.copy(isPatSubmitting = true, patError = null) }
+            val result = authenticationRepository.signInWithPat(input)
+            result
+                .onSuccess {
+                    _state.update {
+                        it.copy(
+                            isPatSheetVisible = false,
+                            patInput = "",
+                            patError = null,
+                            isPatSubmitting = false,
+                            loginState = AuthLoginState.LoggedIn,
+                        )
+                    }
+                    _events.trySend(AuthenticationEvents.OnNavigateToMain)
+                }
+                .onFailure { t ->
+                    logger.debug("PAT sign-in failed: ${t.message}")
+                    val message = when (t) {
+                        is IllegalArgumentException -> getString(Res.string.pat_error_invalid_format)
+                        else -> t.message ?: getString(Res.string.pat_error_generic)
+                    }
+                    _state.update {
+                        it.copy(
+                            isPatSubmitting = false,
+                            patError = message,
+                        )
+                    }
+                }
+        }
+    }
+
+    private fun openPatSettingsPage() {
+        viewModelScope.launch(Dispatchers.Main.immediate) {
+            try {
+                browserHelper.openUrl(PAT_SETTINGS_URL)
+            } catch (e: Exception) {
+                logger.debug("Failed to open PAT settings page: ${e.message}")
+            }
         }
     }
 
@@ -484,6 +575,7 @@ class AuthenticationViewModel(
         private const val KEY_START_TIME_MILLIS = "auth_start_time_millis"
         private const val KEY_AUTH_PATH = "auth_path"
         private const val DEFAULT_POLL_INTERVAL_SEC = 5
+        private const val PAT_SETTINGS_URL = "https://github.com/settings/tokens/new"
 
         private val SAVED_STATE_KEYS =
             listOf(

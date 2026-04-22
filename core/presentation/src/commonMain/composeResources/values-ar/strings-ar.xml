@@ -725,4 +725,25 @@
     <string name="translation_youdao_app_secret">App Secret</string>
     <string name="translation_youdao_save">حفظ بيانات الاعتماد</string>
     <string name="translation_youdao_saved">تم حفظ بيانات اعتماد Youdao</string>
+
+    <!-- Releases status card -->
+    <string name="releases_load_failed">تعذّر تحميل الإصدارات</string>
+    <string name="releases_load_failed_description">تحقق من اتصالك وحاول مرة أخرى.</string>
+    <string name="no_releases_published">لم يتم نشر أي إصدارات بعد</string>
+    <string name="loading_releases">جارٍ تحميل الإصدارات…</string>
+
+    <!-- Personal Access Token sign-in -->
+    <string name="pat_use_token_instead">هل تواجه مشكلة؟ استخدم Personal Access Token</string>
+    <string name="pat_sheet_title">تسجيل الدخول باستخدام Personal Access Token</string>
+    <string name="pat_sheet_description">أنشئ رمزًا على أي جهاز يمكنه الوصول إلى GitHub، ثم الصقه أدناه. يتطلب الصلاحيتين <b>repo</b> و<b>read:user</b>.</string>
+    <string name="pat_open_settings">فتح إعدادات رموز GitHub</string>
+    <string name="pat_input_label">Personal Access Token</string>
+    <string name="pat_input_placeholder">ghp_… أو github_pat_…</string>
+    <string name="pat_submit">تسجيل الدخول</string>
+    <string name="pat_cancel">إلغاء</string>
+    <string name="pat_show">عرض الرمز</string>
+    <string name="pat_hide">إخفاء الرمز</string>
+    <string name="pat_error_empty">يرجى لصق رمز.</string>
+    <string name="pat_error_invalid_format">هذا لا يبدو كرمز GitHub. تبدأ الرموز بـ <b>ghp_</b> أو <b>github_pat_</b>.</string>
+    <string name="pat_error_generic">تعذّر حفظ الرمز. يرجى المحاولة مرة أخرى.</string>
 </resources>
