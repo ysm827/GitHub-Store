@@ -734,7 +734,7 @@
     <!-- Personal Access Token sign-in -->
     <string name="pat_use_token_instead">সমস্যা হচ্ছে? Personal Access Token ব্যবহার করুন</string>
     <string name="pat_sheet_title">Personal Access Token দিয়ে সাইন ইন করুন</string>
-    <string name="pat_sheet_description">GitHub অ্যাক্সেস করতে পারে এমন ডিভাইসে একটি টোকেন তৈরি করুন এবং নিচে পেস্ট করুন। <b>repo</b> এবং <b>read:user</b> স্কোপ প্রয়োজন।</string>
+    <string name="pat_sheet_description">GitHub অ্যাক্সেস করতে পারে এমন যেকোনো ডিভাইসে একটি Personal Access Token (classic বা fine-grained) তৈরি করুন এবং নিচে পেস্ট করুন। রিপোজিটরি ও আপনার প্রোফাইল পড়ার অনুমতি প্রয়োজন।</string>
     <string name="pat_open_settings">GitHub টোকেন সেটিংস খুলুন</string>
     <string name="pat_input_label">Personal Access Token</string>
     <string name="pat_input_placeholder">ghp_… বা github_pat_…</string>
@@ -743,6 +743,6 @@
     <string name="pat_show">টোকেন দেখান</string>
     <string name="pat_hide">টোকেন লুকান</string>
     <string name="pat_error_empty">অনুগ্রহ করে একটি টোকেন পেস্ট করুন।</string>
-    <string name="pat_error_invalid_format">এটি GitHub টোকেন বলে মনে হচ্ছে না। টোকেন <b>ghp_</b> বা <b>github_pat_</b> দিয়ে শুরু হয়।</string>
+    <string name="pat_error_invalid_format">এটি GitHub টোকেন বলে মনে হচ্ছে না। টোকেন ghp_ বা github_pat_ দিয়ে শুরু হয়।</string>
     <string name="pat_error_generic">টোকেন সংরক্ষণ করা যায়নি। আবার চেষ্টা করুন।</string>
 </resources>

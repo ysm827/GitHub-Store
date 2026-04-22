@@ -732,7 +732,7 @@
     <!-- Personal Access Token sign-in -->
     <string name="pat_use_token_instead">Sorun mu var? Personal Access Token kullanın</string>
     <string name="pat_sheet_title">Personal Access Token ile giriş yap</string>
-    <string name="pat_sheet_description">GitHub\'a erişebilen herhangi bir cihazda token oluşturun ve aşağıya yapıştırın. <b>repo</b> ve <b>read:user</b> izinleri gerekir.</string>
+    <string name="pat_sheet_description">GitHub\'a erişebilen herhangi bir cihazda Personal Access Token (classic veya fine-grained) oluşturun ve aşağıya yapıştırın. Depolara ve profilinize okuma erişimi gerekir.</string>
     <string name="pat_open_settings">GitHub token ayarlarını aç</string>
     <string name="pat_input_label">Personal Access Token</string>
     <string name="pat_input_placeholder">ghp_… veya github_pat_…</string>
@@ -741,6 +741,6 @@
     <string name="pat_show">Token\'ı göster</string>
     <string name="pat_hide">Token\'ı gizle</string>
     <string name="pat_error_empty">Lütfen bir token yapıştırın.</string>
-    <string name="pat_error_invalid_format">Bu bir GitHub token\'ına benzemiyor. Tokenlar <b>ghp_</b> veya <b>github_pat_</b> ile başlar.</string>
+    <string name="pat_error_invalid_format">Bu bir GitHub token\'ına benzemiyor. Tokenlar ghp_ veya github_pat_ ile başlar.</string>
     <string name="pat_error_generic">Token kaydedilemedi. Lütfen tekrar deneyin.</string>
 </resources>

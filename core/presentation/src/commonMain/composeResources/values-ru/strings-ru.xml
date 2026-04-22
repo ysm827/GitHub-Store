@@ -702,7 +702,7 @@
     <!-- Personal Access Token sign-in -->
     <string name="pat_use_token_instead">Проблемы со входом? Используйте Personal Access Token</string>
     <string name="pat_sheet_title">Вход с Personal Access Token</string>
-    <string name="pat_sheet_description">Создайте токен на устройстве, где доступен GitHub, и вставьте его ниже. Требуются права <b>repo</b> и <b>read:user</b>.</string>
+    <string name="pat_sheet_description">Создайте Personal Access Token (classic или fine-grained) на устройстве, где доступен GitHub, и вставьте его ниже. Требуется доступ на чтение к репозиториям и вашему профилю.</string>
     <string name="pat_open_settings">Открыть настройки токенов GitHub</string>
     <string name="pat_input_label">Personal Access Token</string>
     <string name="pat_input_placeholder">ghp_… или github_pat_…</string>
@@ -711,6 +711,6 @@
     <string name="pat_show">Показать токен</string>
     <string name="pat_hide">Скрыть токен</string>
     <string name="pat_error_empty">Вставьте токен.</string>
-    <string name="pat_error_invalid_format">Это не похоже на токен GitHub. Токены начинаются с <b>ghp_</b> или <b>github_pat_</b>.</string>
+    <string name="pat_error_invalid_format">Это не похоже на токен GitHub. Токены начинаются с ghp_ или github_pat_.</string>
     <string name="pat_error_generic">Не удалось сохранить токен. Попробуйте снова.</string>
 </resources>

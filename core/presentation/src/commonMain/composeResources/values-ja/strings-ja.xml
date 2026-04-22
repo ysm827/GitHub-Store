@@ -695,7 +695,7 @@
     <!-- Personal Access Token sign-in -->
     <string name="pat_use_token_instead">ログインできない場合は Personal Access Token を使用</string>
     <string name="pat_sheet_title">Personal Access Token でログイン</string>
-    <string name="pat_sheet_description">GitHub にアクセスできる端末でトークンを作成し、以下に貼り付けてください。<b>repo</b> と <b>read:user</b> のスコープが必要です。</string>
+    <string name="pat_sheet_description">GitHub にアクセスできる端末で Personal Access Token（classic または fine-grained）を作成し、以下に貼り付けてください。リポジトリとプロフィールへの読み取りアクセス権が必要です。</string>
     <string name="pat_open_settings">GitHub のトークン設定を開く</string>
     <string name="pat_input_label">Personal Access Token</string>
     <string name="pat_input_placeholder">ghp_… または github_pat_…</string>
@@ -704,6 +704,6 @@
     <string name="pat_show">トークンを表示</string>
     <string name="pat_hide">トークンを非表示</string>
     <string name="pat_error_empty">トークンを貼り付けてください。</string>
-    <string name="pat_error_invalid_format">GitHub のトークンではないようです。トークンは <b>ghp_</b> または <b>github_pat_</b> で始まります。</string>
+    <string name="pat_error_invalid_format">GitHub のトークンではないようです。トークンは ghp_ または github_pat_ で始まります。</string>
     <string name="pat_error_generic">トークンを保存できませんでした。もう一度お試しください。</string>
 </resources>

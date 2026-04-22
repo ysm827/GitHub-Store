@@ -730,7 +730,7 @@
     <!-- Personal Access Token sign-in -->
     <string name="pat_use_token_instead">문제가 있나요? Personal Access Token을 사용하세요</string>
     <string name="pat_sheet_title">Personal Access Token으로 로그인</string>
-    <string name="pat_sheet_description">GitHub에 접속할 수 있는 기기에서 토큰을 만든 후 아래에 붙여넣으세요. <b>repo</b> 및 <b>read:user</b> 권한이 필요합니다.</string>
+    <string name="pat_sheet_description">GitHub에 접속할 수 있는 기기에서 Personal Access Token(classic 또는 fine-grained)을 만든 후 아래에 붙여넣으세요. 저장소와 프로필에 대한 읽기 권한이 필요합니다.</string>
     <string name="pat_open_settings">GitHub 토큰 설정 열기</string>
     <string name="pat_input_label">Personal Access Token</string>
     <string name="pat_input_placeholder">ghp_… 또는 github_pat_…</string>
@@ -739,6 +739,6 @@
     <string name="pat_show">토큰 표시</string>
     <string name="pat_hide">토큰 숨기기</string>
     <string name="pat_error_empty">토큰을 붙여넣어 주세요.</string>
-    <string name="pat_error_invalid_format">GitHub 토큰이 아닌 것 같습니다. 토큰은 <b>ghp_</b> 또는 <b>github_pat_</b>로 시작합니다.</string>
+    <string name="pat_error_invalid_format">GitHub 토큰이 아닌 것 같습니다. 토큰은 ghp_ 또는 github_pat_로 시작합니다.</string>
     <string name="pat_error_generic">토큰을 저장할 수 없습니다. 다시 시도해 주세요.</string>
 </resources>

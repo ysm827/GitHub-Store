@@ -702,7 +702,7 @@
     <!-- Personal Access Token sign-in -->
     <string name="pat_use_token_instead">Masz problem? Użyj Personal Access Token</string>
     <string name="pat_sheet_title">Zaloguj się za pomocą Personal Access Token</string>
-    <string name="pat_sheet_description">Utwórz token na urządzeniu z dostępem do GitHuba i wklej go poniżej. Wymagane uprawnienia: <b>repo</b> oraz <b>read:user</b>.</string>
+    <string name="pat_sheet_description">Utwórz Personal Access Token (classic lub fine-grained) na urządzeniu z dostępem do GitHuba i wklej go poniżej. Wymagany jest dostęp do odczytu repozytoriów i Twojego profilu.</string>
     <string name="pat_open_settings">Otwórz ustawienia tokenów GitHuba</string>
     <string name="pat_input_label">Personal Access Token</string>
     <string name="pat_input_placeholder">ghp_… lub github_pat_…</string>
@@ -711,6 +711,6 @@
     <string name="pat_show">Pokaż token</string>
     <string name="pat_hide">Ukryj token</string>
     <string name="pat_error_empty">Wklej token.</string>
-    <string name="pat_error_invalid_format">To nie wygląda na token GitHuba. Tokeny zaczynają się od <b>ghp_</b> lub <b>github_pat_</b>.</string>
+    <string name="pat_error_invalid_format">To nie wygląda na token GitHuba. Tokeny zaczynają się od ghp_ lub github_pat_.</string>
     <string name="pat_error_generic">Nie udało się zapisać tokena. Spróbuj ponownie.</string>
 </resources>
