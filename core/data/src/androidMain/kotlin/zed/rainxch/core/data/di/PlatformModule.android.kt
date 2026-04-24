@@ -9,6 +9,7 @@ import zed.rainxch.core.data.local.data_store.createDataStore
 import zed.rainxch.core.data.local.db.AppDatabase
 import zed.rainxch.core.data.local.db.initDatabase
 import zed.rainxch.core.data.services.AndroidDownloader
+import zed.rainxch.core.data.services.AndroidDownloadProgressNotifier
 import zed.rainxch.core.data.services.AndroidFileLocationsProvider
 import zed.rainxch.core.data.services.AndroidInstaller
 import zed.rainxch.core.data.services.AndroidInstallerInfoExtractor
@@ -16,6 +17,7 @@ import zed.rainxch.core.data.services.AndroidLocalizationManager
 import zed.rainxch.core.data.services.AndroidPackageMonitor
 import zed.rainxch.core.data.services.AndroidPendingInstallNotifier
 import zed.rainxch.core.data.services.AndroidUpdateScheduleManager
+import zed.rainxch.core.data.services.DownloadNotificationObserver
 import zed.rainxch.core.data.services.FileLocationsProvider
 import zed.rainxch.core.data.services.LocalizationManager
 import zed.rainxch.core.data.services.shizuku.AndroidInstallerStatusProvider
@@ -26,6 +28,8 @@ import zed.rainxch.core.data.utils.AndroidBrowserHelper
 import zed.rainxch.core.data.utils.AndroidClipboardHelper
 import zed.rainxch.core.data.utils.AndroidShareManager
 import zed.rainxch.core.domain.network.Downloader
+import zed.rainxch.core.domain.system.DownloadOrchestrator
+import zed.rainxch.core.domain.system.DownloadProgressNotifier
 import zed.rainxch.core.domain.system.Installer
 import zed.rainxch.core.domain.system.InstallerStatusProvider
 import zed.rainxch.core.domain.system.PackageMonitor
@@ -87,6 +91,17 @@ actual val corePlatformModule =
 
         single<PendingInstallNotifier> {
             AndroidPendingInstallNotifier(context = androidContext())
+        }
+
+        single<DownloadProgressNotifier> {
+            AndroidDownloadProgressNotifier(context = androidContext())
+        }
+
+        single {
+            DownloadNotificationObserver(
+                orchestrator = get<DownloadOrchestrator>(),
+                notifier = get<DownloadProgressNotifier>(),
+            )
         }
 
         single<PackageMonitor> {

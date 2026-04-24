@@ -20,6 +20,8 @@ import org.jetbrains.compose.resources.getString
 import zed.rainxch.core.domain.logging.GitHubStoreLogger
 import zed.rainxch.core.domain.model.DiscoveryPlatform
 import zed.rainxch.core.domain.model.Platform
+import zed.rainxch.core.domain.model.hasActualUpdate
+import zed.rainxch.core.domain.model.isReallyInstalled
 import zed.rainxch.core.domain.repository.FavouritesRepository
 import zed.rainxch.core.domain.repository.InstalledAppsRepository
 import zed.rainxch.core.domain.repository.SeenReposRepository
@@ -111,11 +113,11 @@ class HomeViewModel(
                                 .map { homeRepo ->
                                     val app = installedMap[homeRepo.repository.id]
                                     homeRepo.copy(
-                                        isInstalled = app != null,
-                                        isUpdateAvailable = app?.isUpdateAvailable ?: false,
+                                        isInstalled = app.isReallyInstalled(),
+                                        isUpdateAvailable = app.hasActualUpdate(),
                                     )
                                 }.toImmutableList(),
-                        isUpdateAvailable = installedMap.any { it.value.isUpdateAvailable },
+                        isUpdateAvailable = installedMap.values.any { it.hasActualUpdate() },
                     )
                 }
             }
@@ -361,11 +363,11 @@ class HomeViewModel(
             val starred = starredReposMap[repo.id]
 
             DiscoveryRepositoryUi(
-                isInstalled = app != null,
+                isInstalled = app.isReallyInstalled(),
                 isFavourite = favourite != null,
                 isStarred = starred != null,
                 isSeen = repo.id in seenIds,
-                isUpdateAvailable = app?.isUpdateAvailable ?: false,
+                isUpdateAvailable = app.hasActualUpdate(),
                 repository = repo.toUi(),
             )
         }

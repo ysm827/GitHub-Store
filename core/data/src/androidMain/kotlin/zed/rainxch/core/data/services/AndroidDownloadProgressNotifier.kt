@@ -1,0 +1,150 @@
+package zed.rainxch.core.data.services
+
+import android.Manifest
+import android.annotation.SuppressLint
+import android.app.PendingIntent
+import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
+import android.os.Build
+import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
+import zed.rainxch.core.domain.system.DownloadProgressNotifier
+
+/**
+ * Android implementation of [DownloadProgressNotifier].
+ *
+ * # Behaviour
+ *
+ *  - Ongoing notification on channel `app_downloads` (low-importance —
+ *    no heads-up, no sound; long downloads shouldn't be noisy).
+ *  - `setOnlyAlertOnce(true)` so repeated tick updates don't buzz.
+ *  - `setOngoing(true)` prevents swipe-dismiss while downloading;
+ *    cleared explicitly on completion / cancellation / failure.
+ *  - Indeterminate spinner when the server omitted `Content-Length`.
+ *  - "Cancel" action broadcasts [DownloadCancelReceiver.ACTION_CANCEL]
+ *    with the package name; the receiver resolves the orchestrator
+ *    via Koin and calls `cancel(packageName)`.
+ *
+ * # Permission gating
+ *
+ * POST_NOTIFICATIONS on Android 13+. If denied, silently skip — the
+ * orchestrator's in-app UI still reflects progress.
+ */
+class AndroidDownloadProgressNotifier(
+    private val context: Context,
+) : DownloadProgressNotifier {
+    @SuppressLint("MissingPermission")
+    override fun notifyProgress(
+        packageName: String,
+        appName: String,
+        versionTag: String,
+        percent: Int?,
+        bytesDownloaded: Long,
+        totalBytes: Long?,
+    ) {
+        if (!hasNotificationPermission()) return
+
+        // Encode the package in the Intent's data URI so PendingIntent
+        // identity (driven by Intent.filterEquals, which considers `data`
+        // but not extras) is uniquely per-package. Relying on
+        // packageName.hashCode() as requestCode alone risks a collision
+        // that would have FLAG_UPDATE_CURRENT overwrite another
+        // download's cancel extras.
+        val cancelIntent =
+            Intent(context, DownloadCancelReceiver::class.java).apply {
+                action = DownloadCancelReceiver.ACTION_CANCEL
+                data = Uri.parse("githubstore-cancel://$packageName")
+                setPackage(context.packageName)
+                putExtra(DownloadCancelReceiver.EXTRA_PACKAGE_NAME, packageName)
+            }
+        val cancelPendingIntent =
+            PendingIntent.getBroadcast(
+                context,
+                packageName.hashCode(),
+                cancelIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+            )
+
+        val progressText = formatProgressText(versionTag, bytesDownloaded, totalBytes)
+        val indeterminate = percent == null
+
+        val builder =
+            NotificationCompat
+                .Builder(context, DOWNLOADS_CHANNEL_ID)
+                .setSmallIcon(android.R.drawable.stat_sys_download)
+                .setContentTitle(appName)
+                .setContentText(progressText)
+                .setPriority(NotificationCompat.PRIORITY_LOW)
+                .setOngoing(true)
+                .setOnlyAlertOnce(true)
+                .setProgress(100, percent ?: 0, indeterminate)
+                .addAction(
+                    NotificationCompat.Action.Builder(
+                        android.R.drawable.ic_menu_close_clear_cancel,
+                        CANCEL_LABEL,
+                        cancelPendingIntent,
+                    ).build(),
+                )
+
+        NotificationManagerCompat
+            .from(context)
+            .notify(notificationIdFor(packageName), builder.build())
+    }
+
+    override fun clearProgress(packageName: String) {
+        NotificationManagerCompat
+            .from(context)
+            .cancel(notificationIdFor(packageName))
+    }
+
+    private fun hasNotificationPermission(): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return true
+        return ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.POST_NOTIFICATIONS,
+        ) == PackageManager.PERMISSION_GRANTED
+    }
+
+    /**
+     * Stable id in a range disjoint from the pending-install notifier
+     * (2000..2FFFFFF) and worker ids (1001..1005). Hash collisions are
+     * acceptable — worst case, two downloads share a single row.
+     */
+    private fun notificationIdFor(packageName: String): Int =
+        NOTIFICATION_ID_BASE + (packageName.hashCode() and 0x00FFFFFF)
+
+    private fun formatProgressText(
+        versionTag: String,
+        bytesDownloaded: Long,
+        totalBytes: Long?,
+    ): String {
+        val downloaded = formatBytes(bytesDownloaded)
+        val total = totalBytes?.let { formatBytes(it) }
+        return if (total != null) {
+            "$versionTag · $downloaded / $total"
+        } else {
+            "$versionTag · $downloaded"
+        }
+    }
+
+    private fun formatBytes(bytes: Long): String {
+        if (bytes < 1024) return "$bytes B"
+        val kb = bytes / 1024.0
+        if (kb < 1024) return "%.1f KB".format(kb)
+        val mb = kb / 1024.0
+        if (mb < 1024) return "%.1f MB".format(mb)
+        val gb = mb / 1024.0
+        return "%.2f GB".format(gb)
+    }
+
+    private companion object {
+        const val DOWNLOADS_CHANNEL_ID = "app_downloads"
+        const val CANCEL_LABEL = "Cancel"
+
+        // Disjoint from PendingInstall (2000..) and workers (1001..).
+        const val NOTIFICATION_ID_BASE = 3000
+    }
+}

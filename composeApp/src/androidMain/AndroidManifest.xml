@@ -137,6 +137,15 @@
             </intent-filter>
         </receiver>
 
+        <!-- Cancel action fired from the download progress notification (#373) -->
+        <receiver
+            android:name="zed.rainxch.core.data.services.DownloadCancelReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="zed.rainxch.githubstore.action.CANCEL_DOWNLOAD" />
+            </intent-filter>
+        </receiver>
+
         <!-- WorkManager foreground service declaration for update workers -->
         <service
             android:name="androidx.work.impl.foreground.SystemForegroundService"

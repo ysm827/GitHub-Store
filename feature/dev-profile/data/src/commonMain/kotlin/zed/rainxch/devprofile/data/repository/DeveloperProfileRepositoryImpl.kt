@@ -140,7 +140,12 @@ class DeveloperProfileRepositoryImpl(
         return repo.toDomain(
             hasReleases = hasReleases,
             hasInstallableAssets = hasInstallableAssets,
-            isInstalled = installedApp != null,
+            // Treat a row as installed only if the actual install
+            // completed; a parked-download row left by a failed install
+            // would otherwise leak "Installed" into the UI (see
+            // `InstalledApp.isReallyInstalled` for the domain-model
+            // equivalent of this check).
+            isInstalled = installedApp != null && !installedApp.isPendingInstall,
             isFavorite = isFavorite,
             latestVersion = latestVersion,
         )

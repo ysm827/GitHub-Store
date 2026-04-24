@@ -21,6 +21,8 @@ import org.jetbrains.compose.resources.getString
 import zed.rainxch.core.domain.logging.GitHubStoreLogger
 import zed.rainxch.core.domain.model.Platform
 import zed.rainxch.core.domain.model.RateLimitException
+import zed.rainxch.core.domain.model.hasActualUpdate
+import zed.rainxch.core.domain.model.isReallyInstalled
 import zed.rainxch.core.domain.repository.FavouritesRepository
 import zed.rainxch.core.domain.repository.InstalledAppsRepository
 import zed.rainxch.core.domain.repository.SearchHistoryRepository
@@ -226,8 +228,8 @@ class SearchViewModel(
                                     .map { searchRepo ->
                                         val app = installedMap[searchRepo.repository.id]
                                         searchRepo.copy(
-                                            isInstalled = app != null,
-                                            isUpdateAvailable = app?.isUpdateAvailable ?: false,
+                                            isInstalled = app.isReallyInstalled(),
+                                            isUpdateAvailable = app.hasActualUpdate(),
                                         )
                                     }.toImmutableList(),
                         )
@@ -360,11 +362,11 @@ class SearchViewModel(
                                     val starred = starredReposMap[repo.id]
 
                                     DiscoveryRepositoryUi(
-                                        isInstalled = app != null,
+                                        isInstalled = app.isReallyInstalled(),
                                         isFavourite = favourite != null,
                                         isStarred = starred != null,
                                         isSeen = repo.id in seenIds,
-                                        isUpdateAvailable = app?.isUpdateAvailable ?: false,
+                                        isUpdateAvailable = app.hasActualUpdate(),
                                         repository = repo.toUi(),
                                     )
                                 }
@@ -770,12 +772,13 @@ class SearchViewModel(
         val deduped = newRepos
             .filter { it.id !in existingIds }
             .map { repo ->
+                val app = installedMap[repo.id]
                 DiscoveryRepositoryUi(
-                    isInstalled = installedMap[repo.id] != null,
+                    isInstalled = app.isReallyInstalled(),
                     isFavourite = favoritesMap[repo.id] != null,
                     isStarred = starredMap[repo.id] != null,
                     isSeen = repo.id in seenIds,
-                    isUpdateAvailable = installedMap[repo.id]?.isUpdateAvailable ?: false,
+                    isUpdateAvailable = app.hasActualUpdate(),
                     repository = repo.toUi(),
                 )
             }

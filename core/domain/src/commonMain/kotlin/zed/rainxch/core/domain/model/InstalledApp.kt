@@ -113,3 +113,21 @@ data class InstalledApp(
      */
     val pendingInstallAssetName: String? = null,
 )
+
+/**
+ * True when the app actually exists on device. A row with
+ * [InstalledApp.isPendingInstall] set means the bytes are parked on disk
+ * but the system install has not completed (or failed) — callers that
+ * surface an "Installed" badge must treat that case as *not* installed,
+ * otherwise the Details screen (which checks `isPendingInstall`) and the
+ * Home/Search cards drift out of sync after a failed install.
+ */
+fun InstalledApp?.isReallyInstalled(): Boolean = this != null && !this.isPendingInstall
+
+/**
+ * True when a genuine update is pending install — mirrors the check
+ * [zed.rainxch.details.presentation.components.SmartInstallButton] does
+ * so non-Details surfaces render the same state machine.
+ */
+fun InstalledApp?.hasActualUpdate(): Boolean =
+    this != null && this.isUpdateAvailable && !this.isPendingInstall

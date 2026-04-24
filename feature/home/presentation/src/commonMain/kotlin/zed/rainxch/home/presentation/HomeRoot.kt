@@ -89,8 +89,6 @@ import zed.rainxch.core.presentation.locals.LocalScrollbarEnabled
 import zed.rainxch.core.presentation.theme.GithubStoreTheme
 import zed.rainxch.core.presentation.utils.ObserveAsEvents
 import zed.rainxch.core.presentation.utils.arrowKeyScroll
-import zed.rainxch.core.presentation.utils.isScrollingUp
-import zed.rainxch.core.presentation.utils.arrowKeyScroll
 import zed.rainxch.core.presentation.utils.toIcons
 import zed.rainxch.core.presentation.utils.toLabel
 import zed.rainxch.githubstore.core.presentation.res.*

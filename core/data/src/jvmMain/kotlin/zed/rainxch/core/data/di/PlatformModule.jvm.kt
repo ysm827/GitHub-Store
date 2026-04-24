@@ -11,6 +11,7 @@ import zed.rainxch.core.data.utils.DesktopAppLauncher
 import zed.rainxch.core.data.utils.DesktopBrowserHelper
 import zed.rainxch.core.data.utils.DesktopClipboardHelper
 import zed.rainxch.core.data.services.DesktopDownloader
+import zed.rainxch.core.data.services.DesktopDownloadProgressNotifier
 import zed.rainxch.core.data.services.DesktopFileLocationsProvider
 import zed.rainxch.core.data.services.DesktopInstaller
 import zed.rainxch.core.data.services.DesktopLocalizationManager
@@ -18,6 +19,7 @@ import zed.rainxch.core.data.services.DesktopPackageMonitor
 import zed.rainxch.core.data.services.DesktopPendingInstallNotifier
 import zed.rainxch.core.data.services.DesktopUpdateScheduleManager
 import zed.rainxch.core.data.services.FileLocationsProvider
+import zed.rainxch.core.domain.system.DownloadProgressNotifier
 import zed.rainxch.core.domain.system.Installer
 import zed.rainxch.core.domain.system.InstallerStatusProvider
 import zed.rainxch.core.domain.system.PendingInstallNotifier
@@ -103,5 +105,9 @@ actual val corePlatformModule = module {
 
     single<PendingInstallNotifier> {
         DesktopPendingInstallNotifier()
+    }
+
+    single<DownloadProgressNotifier> {
+        DesktopDownloadProgressNotifier()
     }
 }
