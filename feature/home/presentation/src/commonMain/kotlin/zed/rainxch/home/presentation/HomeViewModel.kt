@@ -117,7 +117,7 @@ class HomeViewModel(
                                         isUpdateAvailable = app.hasActualUpdate(),
                                     )
                                 }.toImmutableList(),
-                        isUpdateAvailable = installedMap.any { it.value.isUpdateAvailable },
+                        isUpdateAvailable = installedMap.values.any { it.hasActualUpdate() },
                     )
                 }
             }
