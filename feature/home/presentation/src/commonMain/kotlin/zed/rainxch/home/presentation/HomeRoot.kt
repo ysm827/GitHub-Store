@@ -3,10 +3,6 @@ package zed.rainxch.home.presentation
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.Image
@@ -49,18 +45,26 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.TopAppBarScrollBehavior
+import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -86,6 +90,7 @@ import zed.rainxch.core.presentation.theme.GithubStoreTheme
 import zed.rainxch.core.presentation.utils.ObserveAsEvents
 import zed.rainxch.core.presentation.utils.arrowKeyScroll
 import zed.rainxch.core.presentation.utils.isScrollingUp
+import zed.rainxch.core.presentation.utils.arrowKeyScroll
 import zed.rainxch.core.presentation.utils.toIcons
 import zed.rainxch.core.presentation.utils.toLabel
 import zed.rainxch.githubstore.core.presentation.res.*
@@ -192,7 +197,10 @@ fun HomeScreen(
         }
     }
 
-    val isHeaderVisible by listState.isScrollingUp()
+    // Material 3's enter-always behavior: heightOffset ticks 1:1 with scroll
+    // delta (finger-speed tracking), snaps/flings settle naturally, and any
+    // upward scroll re-reveals the header instantly. See #440.
+    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
 
     val homeTopbarLiquidState = rememberLiquidState()
 
@@ -207,6 +215,7 @@ fun HomeScreen(
                 )
             },
             containerColor = MaterialTheme.colorScheme.background,
+            modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         ) { innerPadding ->
             Column(
                 modifier =
@@ -224,42 +233,28 @@ fun HomeScreen(
                             },
                         ),
             ) {
-                AnimatedVisibility(
-                    visible = isHeaderVisible,
-                    enter =
-                        expandVertically(
-                            expandFrom = Alignment.Top,
-                            animationSpec = tween(250),
-                        ) + fadeIn(tween(200)),
-                    exit =
-                        shrinkVertically(
-                            shrinkTowards = Alignment.Top,
-                            animationSpec = tween(200),
-                        ) + fadeOut(tween(150)),
-                ) {
-                    Column {
-                        HomeTopAppBar(
-                            currentPlatform = state.currentPlatform,
-                            onChangePlatform = {
-                                onAction(HomeAction.SwitchDiscoveryPlatform(it))
-                            },
-                            isPlatformPopupVisible = state.isPlatformPopupVisible,
-                            onTogglePlatformPopup = {
-                                onAction(HomeAction.OnTogglePlatformPopup)
-                            },
-                        )
+                CollapsibleHeader(scrollBehavior = scrollBehavior) {
+                    HomeTopAppBar(
+                        currentPlatform = state.currentPlatform,
+                        onChangePlatform = {
+                            onAction(HomeAction.SwitchDiscoveryPlatform(it))
+                        },
+                        isPlatformPopupVisible = state.isPlatformPopupVisible,
+                        onTogglePlatformPopup = {
+                            onAction(HomeAction.OnTogglePlatformPopup)
+                        },
+                    )
 
-                        FilterChips(state, onAction)
+                    FilterChips(state, onAction)
 
-                        TopicChips(
-                            selectedTopic = state.selectedTopic,
-                            onTopicSelected = { topic ->
-                                onAction(HomeAction.SwitchTopic(topic))
-                            },
-                        )
+                    TopicChips(
+                        selectedTopic = state.selectedTopic,
+                        onTopicSelected = { topic ->
+                            onAction(HomeAction.SwitchTopic(topic))
+                        },
+                    )
 
-                        Spacer(modifier = Modifier.height(4.dp))
-                    }
+                    Spacer(modifier = Modifier.height(4.dp))
                 }
 
                 Box(Modifier.fillMaxSize()) {
@@ -275,6 +270,51 @@ fun HomeScreen(
                         homeTopBarLiquidState = homeTopbarLiquidState,
                     )
                 }
+            }
+        }
+    }
+}
+
+// Custom-layout analogue of Material 3's `TopAppBarLayout`. Measures children
+// at their natural size, reports a shrunk height (natural + heightOffset) so
+// siblings in the outer Column reflow upward, and translates the children by
+// the same offset so the header slides rather than collapsing contents onto
+// each other. `heightOffsetLimit` is synced to the measured natural height so
+// `scrollBehavior` knows the full collapsible range.
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CollapsibleHeader(
+    scrollBehavior: TopAppBarScrollBehavior,
+    content: @Composable () -> Unit,
+) {
+    var naturalHeightPx by remember { mutableFloatStateOf(0f) }
+    LaunchedEffect(naturalHeightPx) {
+        if (naturalHeightPx > 0f) {
+            scrollBehavior.state.heightOffsetLimit = -naturalHeightPx
+        }
+    }
+
+    Layout(
+        content = content,
+        modifier = Modifier.clipToBounds(),
+    ) { measurables, constraints ->
+        val loose = constraints.copy(minHeight = 0, maxHeight = Int.MAX_VALUE)
+        val placeables = measurables.map { it.measure(loose) }
+        val width =
+            placeables.maxOfOrNull { it.width }
+                ?.coerceAtLeast(constraints.minWidth)
+                ?: constraints.minWidth
+        val natural = placeables.sumOf { it.height }
+        naturalHeightPx = natural.toFloat()
+
+        val offset = scrollBehavior.state.heightOffset.toInt().coerceIn(-natural, 0)
+        val rendered = (natural + offset).coerceAtLeast(0)
+
+        layout(width, rendered) {
+            var y = offset
+            placeables.forEach { p ->
+                p.place(0, y)
+                y += p.height
             }
         }
     }
