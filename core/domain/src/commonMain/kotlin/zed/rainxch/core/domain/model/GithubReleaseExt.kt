@@ -26,3 +26,19 @@ fun GithubRelease.isEffectivelyPreRelease(): Boolean =
     isPrerelease ||
         VersionMath.isPreReleaseTag(tagName) ||
         VersionMath.isPreReleaseTag(name)
+
+/**
+ * Specific label for this release's pre-release marker — `"Beta"`,
+ * `"Alpha"`, `"RC"`, etc. — or `null` if no marker was detected.
+ *
+ * Tries the tag first (where the marker most often lives), falls
+ * back to the release name (some maintainers put the marker only
+ * in the title). Returns `null` when neither contains a recognised
+ * marker, in which case callers that still want to show a badge
+ * should check [isEffectivelyPreRelease] and fall back to a generic
+ * "Pre-release" pill — an opted-in API flag with no visible marker
+ * is still a pre-release, just one without a specific channel name.
+ */
+fun GithubRelease.preReleaseLabel(): String? =
+    VersionMath.preReleaseMarkerLabel(tagName)
+        ?: VersionMath.preReleaseMarkerLabel(name)
