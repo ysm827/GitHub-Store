@@ -22,6 +22,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import org.jetbrains.compose.resources.pluralStringResource
+import org.jetbrains.compose.resources.stringResource
+import zed.rainxch.githubstore.core.presentation.res.Res
+import zed.rainxch.githubstore.core.presentation.res.external_import_proposal_banner_body
+import zed.rainxch.githubstore.core.presentation.res.external_import_proposal_banner_dismiss
+import zed.rainxch.githubstore.core.presentation.res.external_import_proposal_banner_headline
+import zed.rainxch.githubstore.core.presentation.res.external_import_proposal_banner_review
 
 @Composable
 fun ImportProposalBanner(
@@ -53,15 +60,18 @@ fun ImportProposalBanner(
                 verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
                 Text(
-                    // TODO i18n: extract to strings.xml
-                    text = "Found $pendingCount apps from GitHub",
+                    text =
+                        pluralStringResource(
+                            Res.plurals.external_import_proposal_banner_headline,
+                            pendingCount,
+                            pendingCount,
+                        ),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSecondaryContainer,
                 )
                 Text(
-                    // TODO i18n: extract to strings.xml
-                    text = "Review them to track updates here.",
+                    text = stringResource(Res.string.external_import_proposal_banner_body),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSecondaryContainer,
                 )
@@ -71,16 +81,14 @@ fun ImportProposalBanner(
 
             TextButton(onClick = onReview) {
                 Text(
-                    // TODO i18n: extract to strings.xml
-                    text = "Review",
+                    text = stringResource(Res.string.external_import_proposal_banner_review),
                 )
             }
 
             IconButton(onClick = onDismiss) {
                 Icon(
                     imageVector = Icons.Default.Close,
-                    // TODO i18n: extract to strings.xml
-                    contentDescription = "Dismiss",
+                    contentDescription = stringResource(Res.string.external_import_proposal_banner_dismiss),
                 )
             }
         }

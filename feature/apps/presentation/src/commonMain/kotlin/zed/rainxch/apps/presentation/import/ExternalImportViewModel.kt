@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.getString
 import zed.rainxch.apps.domain.repository.AppsRepository
 import zed.rainxch.apps.presentation.import.model.CandidateUi
 import zed.rainxch.apps.presentation.import.model.ImportPhase
@@ -29,6 +30,17 @@ import zed.rainxch.core.domain.system.InstallerKind
 import zed.rainxch.core.domain.system.RepoMatchResult
 import zed.rainxch.core.domain.system.RepoMatchSource
 import zed.rainxch.core.domain.system.RepoMatchSuggestion
+import zed.rainxch.githubstore.core.presentation.res.Res
+import zed.rainxch.githubstore.core.presentation.res.external_import_error_link_failed
+import zed.rainxch.githubstore.core.presentation.res.external_import_error_link_network
+import zed.rainxch.githubstore.core.presentation.res.external_import_error_scan_failed_default
+import zed.rainxch.githubstore.core.presentation.res.external_import_installer_browser
+import zed.rainxch.githubstore.core.presentation.res.external_import_installer_fdroid
+import zed.rainxch.githubstore.core.presentation.res.external_import_installer_obtainium
+import zed.rainxch.githubstore.core.presentation.res.external_import_installer_self
+import zed.rainxch.githubstore.core.presentation.res.external_import_installer_sideload
+import zed.rainxch.githubstore.core.presentation.res.external_import_installer_unknown
+import zed.rainxch.githubstore.core.presentation.res.external_import_search_error_default
 
 class ExternalImportViewModel(
     private val externalImportRepository: ExternalImportRepository,
@@ -190,12 +202,16 @@ class ExternalImportViewModel(
                         errorMessage = e.message,
                     )
                 }
-                _events.send(ExternalImportEvent.ShowError(e.message ?: "Scan failed"))
+                _events.send(
+                    ExternalImportEvent.ShowError(
+                        e.message ?: getString(Res.string.external_import_error_scan_failed_default),
+                    ),
+                )
             }
         }
     }
 
-    private fun buildCard(
+    private suspend fun buildCard(
         candidate: ExternalAppCandidate,
         match: RepoMatchResult?,
     ): CandidateUi? {
@@ -255,10 +271,11 @@ class ExternalImportViewModel(
                 onFailure = { e ->
                     if (e is CancellationException) throw e
                     logger.error("Search override failed for '$query': ${e.message}")
+                    val fallback = getString(Res.string.external_import_search_error_default)
                     _state.update {
                         it.copy(
                             isSearching = false,
-                            searchError = e.message ?: "Search failed",
+                            searchError = e.message ?: fallback,
                             searchOverrideResults = persistentListOf(),
                         )
                     }
@@ -296,13 +313,21 @@ class ExternalImportViewModel(
         viewModelScope.launch {
             if (candidate == null) {
                 logger.error("Cannot materialize ${current.packageName}: candidate missing from snapshot")
-                _events.send(ExternalImportEvent.ShowError("Couldn't link this app — try again."))
+                _events.send(
+                    ExternalImportEvent.ShowError(
+                        getString(Res.string.external_import_error_link_failed),
+                    ),
+                )
                 return@launch
             }
 
             val materialized = materializeAndMark(candidate, suggestion.owner, suggestion.repo, source)
             if (!materialized) {
-                _events.send(ExternalImportEvent.ShowError("Couldn't reach GitHub. Try again later."))
+                _events.send(
+                    ExternalImportEvent.ShowError(
+                        getString(Res.string.external_import_error_link_network),
+                    ),
+                )
                 return@launch
             }
             runCatching {
@@ -498,15 +523,15 @@ class ExternalImportViewModel(
             description = description,
         )
 
-    private fun InstallerKind.toUiLabel(): String =
+    private suspend fun InstallerKind.toUiLabel(): String =
         when (this) {
-            InstallerKind.STORE_OBTAINIUM -> "Obtainium"
-            InstallerKind.STORE_FDROID -> "F-Droid"
-            InstallerKind.BROWSER -> "Browser"
-            InstallerKind.SIDELOAD -> "Sideload"
-            InstallerKind.GITHUB_STORE_SELF -> "GitHub Store"
-            InstallerKind.UNKNOWN -> "Unknown source"
-            else -> "Unknown source"
+            InstallerKind.STORE_OBTAINIUM -> getString(Res.string.external_import_installer_obtainium)
+            InstallerKind.STORE_FDROID -> getString(Res.string.external_import_installer_fdroid)
+            InstallerKind.BROWSER -> getString(Res.string.external_import_installer_browser)
+            InstallerKind.SIDELOAD -> getString(Res.string.external_import_installer_sideload)
+            InstallerKind.GITHUB_STORE_SELF -> getString(Res.string.external_import_installer_self)
+            InstallerKind.UNKNOWN -> getString(Res.string.external_import_installer_unknown)
+            else -> getString(Res.string.external_import_installer_unknown)
         }
 
     companion object {

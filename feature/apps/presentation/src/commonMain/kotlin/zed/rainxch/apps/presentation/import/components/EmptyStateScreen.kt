@@ -21,6 +21,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import org.jetbrains.compose.resources.stringResource
+import zed.rainxch.githubstore.core.presentation.res.Res
+import zed.rainxch.githubstore.core.presentation.res.external_import_empty_all_matched
+import zed.rainxch.githubstore.core.presentation.res.external_import_empty_done
+import zed.rainxch.githubstore.core.presentation.res.external_import_empty_grant_permission
+import zed.rainxch.githubstore.core.presentation.res.external_import_empty_no_apps_body
+import zed.rainxch.githubstore.core.presentation.res.external_import_empty_no_apps_title
+import zed.rainxch.githubstore.core.presentation.res.external_import_empty_ok
 
 @Composable
 fun EmptyStateScreen(
@@ -45,16 +53,14 @@ fun EmptyStateScreen(
                     modifier = Modifier.size(64.dp),
                 )
                 Text(
-                    // TODO i18n: extract to strings.xml
-                    text = "All matched.\nNothing to link.",
+                    text = stringResource(Res.string.external_import_empty_all_matched),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface,
                     textAlign = TextAlign.Center,
                 )
                 Button(onClick = onExit) {
-                    // TODO i18n: extract to strings.xml
-                    Text("Done")
+                    Text(stringResource(Res.string.external_import_empty_done))
                 }
             } else {
                 Icon(
@@ -64,28 +70,24 @@ fun EmptyStateScreen(
                     modifier = Modifier.size(72.dp),
                 )
                 Text(
-                    // TODO i18n: extract to strings.xml
-                    text = "Couldn't find any GitHub apps on this device.",
+                    text = stringResource(Res.string.external_import_empty_no_apps_title),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface,
                     textAlign = TextAlign.Center,
                 )
                 Text(
-                    // TODO i18n: extract to strings.xml
-                    text = "This means either everything was installed via a different store, or we don't have visibility into what's installed.",
+                    text = stringResource(Res.string.external_import_empty_no_apps_body),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedButton(onClick = onExit) {
-                        // TODO i18n: extract to strings.xml
-                        Text("OK")
+                        Text(stringResource(Res.string.external_import_empty_ok))
                     }
                     Button(onClick = onRequestPermission) {
-                        // TODO i18n: extract to strings.xml
-                        Text("Grant permission")
+                        Text(stringResource(Res.string.external_import_empty_grant_permission))
                     }
                 }
             }

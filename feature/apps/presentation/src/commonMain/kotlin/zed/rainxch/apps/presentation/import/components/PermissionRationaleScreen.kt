@@ -22,15 +22,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.stringResource
 import zed.rainxch.apps.presentation.import.ExternalImportAction
 import zed.rainxch.apps.presentation.import.util.rememberPackageVisibilityRequester
 import zed.rainxch.apps.presentation.import.util.rememberSdkInt
-
-private const val BODY_COPY =
-    "We can scan your installed apps and match them to GitHub releases — so updates and detection just work.\n\n" +
-        "To do that, we need to see which apps you have. Without permission we can only see about 5 apps; with it, we can see all of them.\n\n" +
-        "We never send the list of your apps anywhere without your permission. The match runs on your device. " +
-        "The optional backend lookup sends only the package name and app label of apps you ask us to match — never a full list of what's installed."
+import zed.rainxch.githubstore.core.presentation.res.Res
+import zed.rainxch.githubstore.core.presentation.res.external_import_permission_body
+import zed.rainxch.githubstore.core.presentation.res.external_import_permission_continue
+import zed.rainxch.githubstore.core.presentation.res.external_import_permission_not_now
+import zed.rainxch.githubstore.core.presentation.res.external_import_permission_title
 
 @Composable
 fun PermissionRationaleScreen(
@@ -57,8 +57,7 @@ fun PermissionRationaleScreen(
             )
 
             Text(
-                // TODO i18n: extract to strings.xml
-                text = "Find your GitHub apps",
+                text = stringResource(Res.string.external_import_permission_title),
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface,
@@ -66,8 +65,7 @@ fun PermissionRationaleScreen(
             )
 
             Text(
-                // TODO i18n: extract to strings.xml
-                text = BODY_COPY,
+                text = stringResource(Res.string.external_import_permission_body),
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Start,
@@ -77,8 +75,7 @@ fun PermissionRationaleScreen(
                 OutlinedButton(
                     onClick = { onAction(ExternalImportAction.OnPermissionDenied(sdkInt)) },
                 ) {
-                    // TODO i18n: extract to strings.xml
-                    Text("Not now")
+                    Text(stringResource(Res.string.external_import_permission_not_now))
                 }
                 Button(onClick = {
                     scope.launch {
@@ -94,8 +91,7 @@ fun PermissionRationaleScreen(
                         }
                     }
                 }) {
-                    // TODO i18n: extract to strings.xml
-                    Text("Continue")
+                    Text(stringResource(Res.string.external_import_permission_continue))
                 }
             }
         }

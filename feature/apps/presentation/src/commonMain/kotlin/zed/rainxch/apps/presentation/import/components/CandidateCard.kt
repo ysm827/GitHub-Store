@@ -26,9 +26,17 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
 import kotlinx.collections.immutable.ImmutableList
+import org.jetbrains.compose.resources.stringResource
 import zed.rainxch.apps.presentation.components.InstalledAppIcon
 import zed.rainxch.apps.presentation.import.model.CandidateUi
 import zed.rainxch.apps.presentation.import.model.RepoSuggestionUi
+import zed.rainxch.githubstore.core.presentation.res.Res
+import zed.rainxch.githubstore.core.presentation.res.external_import_card_action_skip
+import zed.rainxch.githubstore.core.presentation.res.external_import_card_collapse_label
+import zed.rainxch.githubstore.core.presentation.res.external_import_card_expand_label
+import zed.rainxch.githubstore.core.presentation.res.external_import_card_installer_chip
+import zed.rainxch.githubstore.core.presentation.res.external_import_card_preselect_known
+import zed.rainxch.githubstore.core.presentation.res.external_import_card_preselect_unknown
 
 @Composable
 fun CandidateCard(
@@ -46,6 +54,7 @@ fun CandidateCard(
     onSearchSubmit: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val expandLabel = stringResource(Res.string.external_import_card_expand_label)
     Surface(
         tonalElevation = 1.dp,
         shape = RoundedCornerShape(20.dp),
@@ -56,7 +65,7 @@ fun CandidateCard(
                 .let { base ->
                     if (!expanded) {
                         base.clickable(
-                            onClickLabel = "Expand to see other matches",
+                            onClickLabel = expandLabel,
                             role = Role.Button,
                         ) { onExpand() }
                     } else {
@@ -100,14 +109,12 @@ fun CandidateCard(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     TextButton(onClick = onSkip) {
-                        // TODO i18n: extract to strings.xml
-                        Text("Skip")
+                        Text(stringResource(Res.string.external_import_card_action_skip))
                     }
                     IconButton(onClick = onCollapse) {
                         Icon(
                             imageVector = Icons.Default.KeyboardArrowUp,
-                            // TODO i18n: extract to strings.xml
-                            contentDescription = "Collapse card",
+                            contentDescription = stringResource(Res.string.external_import_card_collapse_label),
                         )
                     }
                 }
@@ -160,8 +167,7 @@ private fun InstallerChip(installerLabel: String) {
         shape = RoundedCornerShape(8.dp),
     ) {
         Text(
-            // TODO i18n: extract to strings.xml
-            text = "Installed via $installerLabel",
+            text = stringResource(Res.string.external_import_card_installer_chip, installerLabel),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSecondaryContainer,
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
@@ -190,8 +196,7 @@ private fun PreselectedRow(suggestion: RepoSuggestionUi?) {
     ) {
         if (suggestion == null) {
             Text(
-                // TODO i18n: extract to strings.xml
-                text = "Tap to find a repo",
+                text = stringResource(Res.string.external_import_card_preselect_unknown),
                 style = MaterialTheme.typography.bodyMedium,
                 color = contentColor,
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp),
@@ -199,8 +204,12 @@ private fun PreselectedRow(suggestion: RepoSuggestionUi?) {
         } else {
             val percent = (suggestion.confidence * 100).roundToInt().coerceIn(0, 100)
             Text(
-                // TODO i18n: extract to strings.xml
-                text = "We think this is ${suggestion.ownerSlashRepo} · $percent%",
+                text =
+                    stringResource(
+                        Res.string.external_import_card_preselect_known,
+                        suggestion.ownerSlashRepo,
+                        percent,
+                    ),
                 style = MaterialTheme.typography.bodyMedium,
                 color = contentColor,
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp),

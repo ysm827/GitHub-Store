@@ -31,6 +31,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import zed.rainxch.apps.presentation.import.components.CompletionToast
 import zed.rainxch.apps.presentation.import.components.ConfettiOverlay
@@ -42,6 +43,11 @@ import zed.rainxch.apps.presentation.import.model.ImportPhase
 import zed.rainxch.apps.presentation.import.util.LocalReducedMotion
 import zed.rainxch.apps.presentation.import.util.rememberSystemReducedMotion
 import zed.rainxch.core.presentation.utils.ObserveAsEvents
+import zed.rainxch.githubstore.core.presentation.res.Res
+import zed.rainxch.githubstore.core.presentation.res.external_import_overflow_more
+import zed.rainxch.githubstore.core.presentation.res.external_import_overflow_skip_remaining
+import zed.rainxch.githubstore.core.presentation.res.external_import_top_bar_back
+import zed.rainxch.githubstore.core.presentation.res.external_import_top_bar_title
 
 @Composable
 fun ExternalImportRoot(
@@ -79,8 +85,7 @@ fun ExternalImportRoot(
                 TopAppBar(
                     title = {
                         Text(
-                            // TODO i18n: extract to strings.xml
-                            text = "Import installed apps",
+                            text = stringResource(Res.string.external_import_top_bar_title),
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
                         )
@@ -89,8 +94,7 @@ fun ExternalImportRoot(
                         IconButton(onClick = { viewModel.onAction(ExternalImportAction.OnExit) }) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                // TODO i18n: extract to strings.xml
-                                contentDescription = "Back",
+                                contentDescription = stringResource(Res.string.external_import_top_bar_back),
                             )
                         }
                     },
@@ -101,8 +105,7 @@ fun ExternalImportRoot(
                                 IconButton(onClick = { menuOpen = true }) {
                                     Icon(
                                         imageVector = Icons.Outlined.MoreVert,
-                                        // TODO i18n: extract to strings.xml
-                                        contentDescription = "More options",
+                                        contentDescription = stringResource(Res.string.external_import_overflow_more),
                                     )
                                 }
                                 DropdownMenu(
@@ -110,8 +113,7 @@ fun ExternalImportRoot(
                                     onDismissRequest = { menuOpen = false },
                                 ) {
                                     DropdownMenuItem(
-                                        // TODO i18n: extract to strings.xml
-                                        text = { Text("Skip remaining") },
+                                        text = { Text(stringResource(Res.string.external_import_overflow_skip_remaining)) },
                                         onClick = {
                                             menuOpen = false
                                             viewModel.onAction(ExternalImportAction.OnSkipRemaining)

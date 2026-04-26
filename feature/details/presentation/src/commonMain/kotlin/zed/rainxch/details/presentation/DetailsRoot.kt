@@ -89,6 +89,11 @@ import zed.rainxch.githubstore.core.presentation.res.add_to_favourites
 import zed.rainxch.githubstore.core.presentation.res.cancel
 import zed.rainxch.githubstore.core.presentation.res.confirm_uninstall_message
 import zed.rainxch.githubstore.core.presentation.res.confirm_uninstall_title
+import zed.rainxch.githubstore.core.presentation.res.details_unlink_external_app_dialog_body
+import zed.rainxch.githubstore.core.presentation.res.details_unlink_external_app_dialog_confirm
+import zed.rainxch.githubstore.core.presentation.res.details_unlink_external_app_dialog_title
+import zed.rainxch.githubstore.core.presentation.res.details_unlink_external_app_menu
+import zed.rainxch.githubstore.core.presentation.res.details_unlink_external_app_more_options
 import zed.rainxch.githubstore.core.presentation.res.dismiss
 import zed.rainxch.githubstore.core.presentation.res.downgrade_requires_uninstall
 import zed.rainxch.githubstore.core.presentation.res.downgrade_warning_message
@@ -302,15 +307,11 @@ fun DetailsRoot(
                 viewModel.onAction(DetailsAction.OnDismissUnlinkConfirmation)
             },
             title = {
-                // TODO i18n: extract to strings.xml
-                Text(text = "Unlink this app?")
+                Text(text = stringResource(Res.string.details_unlink_external_app_dialog_title))
             },
             text = {
-                // TODO i18n: extract to strings.xml
                 Text(
-                    text =
-                        "We'll stop tracking $appName as installed from this repo. " +
-                            "The app stays on your device — only the link is removed.",
+                    text = stringResource(Res.string.details_unlink_external_app_dialog_body, appName),
                 )
             },
             confirmButton = {
@@ -319,9 +320,8 @@ fun DetailsRoot(
                         viewModel.onAction(DetailsAction.OnConfirmUnlinkExternalApp)
                     },
                 ) {
-                    // TODO i18n: extract to strings.xml
                     Text(
-                        text = "Unlink",
+                        text = stringResource(Res.string.details_unlink_external_app_dialog_confirm),
                         color = MaterialTheme.colorScheme.error,
                     )
                 }
@@ -763,8 +763,7 @@ private fun DetailsTopbar(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.MoreVert,
-                                // TODO i18n: extract to strings.xml
-                                contentDescription = "More options",
+                                contentDescription = stringResource(Res.string.details_unlink_external_app_more_options),
                             )
                         }
                         DropdownMenu(
@@ -773,8 +772,7 @@ private fun DetailsTopbar(
                         ) {
                             DropdownMenuItem(
                                 text = {
-                                    // TODO i18n: extract to strings.xml
-                                    Text(text = "Unlink from this repo")
+                                    Text(text = stringResource(Res.string.details_unlink_external_app_menu))
                                 },
                                 leadingIcon = {
                                     Icon(

@@ -22,7 +22,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import kotlinx.collections.immutable.ImmutableList
+import org.jetbrains.compose.resources.stringResource
 import zed.rainxch.apps.presentation.import.model.RepoSuggestionUi
+import zed.rainxch.githubstore.core.presentation.res.Res
+import zed.rainxch.githubstore.core.presentation.res.external_import_search_empty
+import zed.rainxch.githubstore.core.presentation.res.external_import_search_icon_label
+import zed.rainxch.githubstore.core.presentation.res.external_import_search_placeholder
 
 @Composable
 fun RepoSearchOverride(
@@ -53,16 +58,14 @@ fun RepoSearchOverride(
                 },
                 placeholder = {
                     Text(
-                        // TODO i18n: extract to strings.xml
-                        text = "Not the right repo? Search…",
+                        text = stringResource(Res.string.external_import_search_placeholder),
                     )
                 },
                 trailingIcon = {
                     IconButton(onClick = onSubmit) {
                         Icon(
                             imageVector = Icons.Default.Search,
-                            // TODO i18n: extract to strings.xml
-                            contentDescription = "Search GitHub",
+                            contentDescription = stringResource(Res.string.external_import_search_icon_label),
                         )
                     }
                 },
@@ -93,8 +96,7 @@ fun RepoSearchOverride(
             }
         } else if (query.isNotBlank() && !isSearching) {
             Text(
-                // TODO i18n: extract to strings.xml
-                text = "No matches",
+                text = stringResource(Res.string.external_import_search_empty),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

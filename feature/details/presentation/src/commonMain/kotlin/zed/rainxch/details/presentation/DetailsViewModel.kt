@@ -73,6 +73,8 @@ import zed.rainxch.details.presentation.model.SupportedLanguages
 import zed.rainxch.details.presentation.model.TranslationState
 import zed.rainxch.githubstore.core.presentation.res.Res
 import zed.rainxch.githubstore.core.presentation.res.added_to_favourites
+import zed.rainxch.githubstore.core.presentation.res.details_unlink_external_app_failure
+import zed.rainxch.githubstore.core.presentation.res.details_unlink_external_app_success
 import zed.rainxch.githubstore.core.presentation.res.failed_to_open_app
 import zed.rainxch.githubstore.core.presentation.res.failed_to_share_link
 import zed.rainxch.githubstore.core.presentation.res.failed_to_uninstall
@@ -178,17 +180,19 @@ class DetailsViewModel(
                     installedAppsRepository.deleteInstalledApp(packageName)
                 }
                 runCatching { telemetryRepository.importUnlinkedFromDetails() }
-                // TODO i18n: extract to strings.xml
                 _events.send(
-                    DetailsEvent.OnMessage("Unlinked. We'll re-suggest a match next scan."),
+                    DetailsEvent.OnMessage(
+                        getString(Res.string.details_unlink_external_app_success),
+                    ),
                 )
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
                 logger.error("Failed to unlink $packageName: ${e.message}")
-                // TODO i18n: extract to strings.xml
                 _events.send(
-                    DetailsEvent.OnMessage("Couldn't unlink — try again."),
+                    DetailsEvent.OnMessage(
+                        getString(Res.string.details_unlink_external_app_failure),
+                    ),
                 )
             }
         }

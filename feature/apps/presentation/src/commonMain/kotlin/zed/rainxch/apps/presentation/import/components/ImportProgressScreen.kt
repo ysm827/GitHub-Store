@@ -18,7 +18,14 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import org.jetbrains.compose.resources.pluralStringResource
+import org.jetbrains.compose.resources.stringResource
 import zed.rainxch.apps.presentation.import.model.ImportPhase
+import zed.rainxch.githubstore.core.presentation.res.Res
+import zed.rainxch.githubstore.core.presentation.res.external_import_progress_auto_importing
+import zed.rainxch.githubstore.core.presentation.res.external_import_progress_scanning
+import zed.rainxch.githubstore.core.presentation.res.external_import_progress_subtitle_count
+import zed.rainxch.githubstore.core.presentation.res.external_import_progress_working
 
 @Composable
 fun ImportProgressScreen(
@@ -28,12 +35,9 @@ fun ImportProgressScreen(
 ) {
     val headline =
         when (phase) {
-            // TODO i18n: extract to strings.xml
-            ImportPhase.Scanning -> "Scanning your apps…"
-            // TODO i18n: extract to strings.xml
-            ImportPhase.AutoImporting -> "Importing matches…"
-            // TODO i18n: extract to strings.xml
-            else -> "Working…"
+            ImportPhase.Scanning -> stringResource(Res.string.external_import_progress_scanning)
+            ImportPhase.AutoImporting -> stringResource(Res.string.external_import_progress_auto_importing)
+            else -> stringResource(Res.string.external_import_progress_working)
         }
 
     Box(
@@ -60,8 +64,12 @@ fun ImportProgressScreen(
             )
 
             Text(
-                // TODO i18n: extract to strings.xml
-                text = "Looked at $totalCandidates apps",
+                text =
+                    pluralStringResource(
+                        Res.plurals.external_import_progress_subtitle_count,
+                        totalCandidates,
+                        totalCandidates,
+                    ),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,

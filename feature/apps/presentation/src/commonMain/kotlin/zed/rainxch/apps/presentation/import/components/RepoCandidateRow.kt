@@ -26,8 +26,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
+import org.jetbrains.compose.resources.stringResource
 import zed.rainxch.apps.presentation.import.model.RepoSuggestionUi
 import zed.rainxch.apps.presentation.import.model.SuggestionSource
+import zed.rainxch.githubstore.core.presentation.res.Res
+import zed.rainxch.githubstore.core.presentation.res.external_import_match_confidence_a11y
+import zed.rainxch.githubstore.core.presentation.res.external_import_match_confidence_chip
 
 @Composable
 fun RepoCandidateRow(
@@ -95,16 +99,18 @@ fun RepoCandidateRow(
 
         Spacer(Modifier.width(12.dp))
 
+        val confidenceLabel =
+            stringResource(Res.string.external_import_match_confidence_a11y, percent)
         Surface(
             color = chipBg,
             shape = RoundedCornerShape(12.dp),
             modifier =
                 Modifier.semantics {
-                    contentDescription = "Match confidence: $percent percent"
+                    contentDescription = confidenceLabel
                 },
         ) {
             Text(
-                text = "$percent%",
+                text = stringResource(Res.string.external_import_match_confidence_chip, percent),
                 style = MaterialTheme.typography.labelMedium,
                 color = chipFg,
                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),

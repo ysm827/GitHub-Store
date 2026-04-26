@@ -18,6 +18,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import org.jetbrains.compose.resources.pluralStringResource
+import org.jetbrains.compose.resources.stringResource
+import zed.rainxch.githubstore.core.presentation.res.Res
+import zed.rainxch.githubstore.core.presentation.res.external_import_completion_action_view_all
+import zed.rainxch.githubstore.core.presentation.res.external_import_completion_headline
+import zed.rainxch.githubstore.core.presentation.res.external_import_completion_skipped_subline
 
 @Composable
 fun CompletionToast(
@@ -46,8 +52,12 @@ fun CompletionToast(
             )
 
             Text(
-                // TODO i18n: extract to strings.xml
-                text = "Now tracking $tracked apps.",
+                text =
+                    pluralStringResource(
+                        Res.plurals.external_import_completion_headline,
+                        tracked,
+                        tracked,
+                    ),
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface,
@@ -56,8 +66,7 @@ fun CompletionToast(
 
             if (skipped > 0) {
                 Text(
-                    // TODO i18n: extract to strings.xml
-                    text = "Skipped $skipped — you can re-run a scan from Settings.",
+                    text = stringResource(Res.string.external_import_completion_skipped_subline, skipped),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
@@ -65,8 +74,7 @@ fun CompletionToast(
             }
 
             Button(onClick = onExit) {
-                // TODO i18n: extract to strings.xml
-                Text("View all")
+                Text(stringResource(Res.string.external_import_completion_action_view_all))
             }
         }
     }

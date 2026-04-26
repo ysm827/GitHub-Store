@@ -37,9 +37,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.stringResource
 import zed.rainxch.apps.presentation.import.model.CandidateUi
 import zed.rainxch.apps.presentation.import.model.RepoSuggestionUi
 import zed.rainxch.apps.presentation.import.util.LocalReducedMotion
+import zed.rainxch.githubstore.core.presentation.res.Res
+import zed.rainxch.githubstore.core.presentation.res.external_import_card_action_link
+import zed.rainxch.githubstore.core.presentation.res.external_import_card_action_skip
+import zed.rainxch.githubstore.core.presentation.res.external_import_card_progress_chip
 
 @Composable
 fun WizardCardStack(
@@ -117,15 +122,13 @@ fun WizardCardStack(
                 onClick = onSkip,
                 modifier = Modifier.weight(1f),
             ) {
-                // TODO i18n: extract to strings.xml
-                Text("Skip")
+                Text(stringResource(Res.string.external_import_card_action_skip))
             }
             Button(
                 onClick = onLink,
                 modifier = Modifier.weight(1f),
             ) {
-                // TODO i18n: extract to strings.xml
-                Text("Link")
+                Text(stringResource(Res.string.external_import_card_action_link))
             }
         }
     }
@@ -139,8 +142,12 @@ private fun ProgressChip(currentIndex: Int, total: Int) {
         modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
     ) {
         Text(
-            // TODO i18n: extract to strings.xml
-            text = "Card ${currentIndex + 1} of $total",
+            text =
+                stringResource(
+                    Res.string.external_import_card_progress_chip,
+                    currentIndex + 1,
+                    total,
+                ),
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.Medium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
