@@ -88,6 +88,7 @@ class PackageEventReceiver() :
         val packageName = intent?.data?.schemeSpecificPart ?: return
 
         Logger.d { "PackageEventReceiver: ${intent.action} for $packageName" }
+        Logger.withTag("E1Debug").i { "PackageEventReceiver action=${intent.action} pkg=$packageName" }
 
         try {
             when (intent.action) {
@@ -169,10 +170,15 @@ class PackageEventReceiver() :
         // path above.
         getBackstopScope().launch {
             runCatching {
-                if (shouldRescan(packageName)) {
+                val rescan = shouldRescan(packageName)
+                Logger.withTag("E1Debug").i { "PackageEventReceiver shouldRescan pkg=$packageName -> $rescan" }
+                if (rescan) {
                     getExternalImport().runDeltaScan(setOf(packageName))
                 }
-            }.onFailure { Logger.w(it) { "Delta scan failed for $packageName" } }
+            }.onFailure {
+                Logger.withTag("E1Debug").w(it) { "PackageEventReceiver delta scan failed pkg=$packageName" }
+                Logger.w(it) { "Delta scan failed for $packageName" }
+            }
         }
     }
 

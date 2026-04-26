@@ -50,6 +50,18 @@ class ExternalImportRepositoryImpl(
     // next scan rather than persisted to keep the schema small.
     private val candidateSnapshot = MutableStateFlow<Map<String, ExternalAppCandidate>>(emptyMap())
 
+    private val debug = Logger.withTag(E1_DEBUG_TAG)
+
+    private suspend fun upsertWithLog(row: ExternalLinkEntity, callsite: String) {
+        externalLinkDao.upsert(row)
+        debug.i { "upsert from=$callsite pkg=${row.packageName} state=${row.state} repo=${row.repoOwner}/${row.repoName}" }
+    }
+
+    private suspend fun deleteWithLog(packageName: String, callsite: String) {
+        externalLinkDao.deleteByPackageName(packageName)
+        debug.i { "delete from=$callsite pkg=$packageName" }
+    }
+
     override fun pendingCandidatesFlow(): Flow<List<ExternalAppCandidate>> =
         combine(
             candidateSnapshot,
@@ -62,13 +74,8 @@ class ExternalImportRepositoryImpl(
     override fun pendingCandidateCountFlow(): Flow<Int> = externalLinkDao.observePendingReviewCount()
 
     override suspend fun scheduleInitialScanIfNeeded() {
-        // Reconcile on every cold start. The scan itself is local-only
-        // (PackageManager + DAO writes), idempotent against MATCHED/SKIPPED
-        // rows, and prunes stale PENDING_REVIEW rows that no longer pass the
-        // current scanner filter. Without this, banner counts persist past
-        // app updates that tightened the filter — leading to "banner says 50
-        // apps but the wizard finds zero".
         val firstLaunch = preferences.data.first()[INITIAL_SCAN_COMPLETED_AT_KEY] == null
+        debug.i { "scheduleInitialScanIfNeeded enter firstLaunch=$firstLaunch" }
         runCatching {
             if (firstLaunch) {
                 runCatching { telemetry.importScanStarted(trigger = "first_launch") }
@@ -77,37 +84,41 @@ class ExternalImportRepositoryImpl(
             runFullScan()
         }.onSuccess {
             if (firstLaunch) markInitialScanComplete()
-        }.onFailure { Logger.w(it) { "External scan failed; will retry on next launch." } }
+            debug.i { "scheduleInitialScanIfNeeded done firstLaunch=$firstLaunch" }
+        }.onFailure {
+            debug.w(it) { "scheduleInitialScanIfNeeded FAILED" }
+            Logger.w(it) { "External scan failed; will retry on next launch." }
+        }
     }
 
     override suspend fun runFullScan(): ScanResult {
         val started = nowMillis()
+        debug.i { "runFullScan ENTER" }
         val granted = scanner.isPermissionGranted()
         val rawCandidates = scanner.snapshot()
-        // Surface only candidates with positive evidence that the app is
-        // GitHub-published. Without this we'd show every app whose installer
-        // we didn't recognise (UNKNOWN bucket) — a flood of Samsung utilities,
-        // random sideloads, and OEM apps the user knows aren't open source.
+        debug.i { "runFullScan scanner.snapshot returned ${rawCandidates.size} raw candidates (granted=$granted)" }
         val candidates = rawCandidates.filter { hasPositiveEvidence(it) }
+        debug.i { "runFullScan after positive-evidence filter: ${candidates.size} kept (dropped ${rawCandidates.size - candidates.size})" }
         candidateSnapshot.update { candidates.associateBy { it.packageName } }
 
         val now = nowMillis()
         var newCandidates = 0
         var pendingReview = 0
+        var preservedDecisions = 0
 
         candidates.forEach { candidate ->
             val existing = externalLinkDao.get(candidate.packageName)
             val updated = mergeCandidate(existing, candidate, now)
             if (existing == null) newCandidates++
             if (updated.state == ExternalLinkState.PENDING_REVIEW.name) pendingReview++
-            externalLinkDao.upsert(updated)
+            if (existing != null && updated.state != ExternalLinkState.PENDING_REVIEW.name) preservedDecisions++
+            upsertWithLog(updated, callsite = "runFullScan")
         }
+        debug.i { "runFullScan upserted: new=$newCandidates pendingReview=$pendingReview preservedDecisions=$preservedDecisions" }
 
-        // Prune PENDING_REVIEW rows whose package is gone or no longer passes
-        // the evidence filter. Without this, the banner count drifts past the
-        // actual reviewable set after we tightened the policy.
         val livePackages = candidates.map { it.packageName }.toSet()
         runCatching { externalLinkDao.prunePendingReviewNotIn(livePackages) }
+            .onSuccess { debug.i { "runFullScan prunePendingReviewNotIn livePackages=${livePackages.size}" } }
             .onFailure { Logger.d { "prune pending failed: ${it.message}" } }
 
         val durationMs = nowMillis() - started
@@ -129,6 +140,7 @@ class ExternalImportRepositoryImpl(
     }
 
     override suspend fun runDeltaScan(changedPackageNames: Set<String>): ScanResult {
+        debug.i { "runDeltaScan ENTER changed=${changedPackageNames.size} packages=$changedPackageNames" }
         val started = nowMillis()
         val granted = scanner.isPermissionGranted()
         val now = nowMillis()
@@ -137,9 +149,10 @@ class ExternalImportRepositoryImpl(
         val deltaCandidates = mutableListOf<ExternalAppCandidate>()
 
         changedPackageNames.forEach { pkg ->
-            val candidate = scanner.snapshotSingle(pkg)
+            val rawCandidate = scanner.snapshotSingle(pkg)
+            val candidate = rawCandidate?.takeIf { hasPositiveEvidence(it) }
             if (candidate == null) {
-                externalLinkDao.deleteByPackageName(pkg)
+                deleteWithLog(pkg, callsite = "runDeltaScan(no-evidence-or-uninstalled)")
                 return@forEach
             }
             deltaCandidates += candidate
@@ -147,8 +160,9 @@ class ExternalImportRepositoryImpl(
             val updated = mergeCandidate(existing, candidate, now)
             if (existing == null) newCandidates++
             if (updated.state == ExternalLinkState.PENDING_REVIEW.name) pendingReview++
-            externalLinkDao.upsert(updated)
+            upsertWithLog(updated, callsite = "runDeltaScan")
         }
+        debug.i { "runDeltaScan upserted: new=$newCandidates pendingReview=$pendingReview deltaSize=${deltaCandidates.size}" }
 
         if (deltaCandidates.isNotEmpty()) {
             candidateSnapshot.update { current ->
@@ -248,6 +262,7 @@ class ExternalImportRepositoryImpl(
     }
 
     override suspend fun importAutoMatched(matches: List<RepoMatchResult>): ImportSummary {
+        debug.i { "importAutoMatched ENTER matches=${matches.size}" }
         var linked = 0
         var failed = 0
         val now = nowMillis()
@@ -269,7 +284,7 @@ class ExternalImportRepositoryImpl(
                         lastReviewedAt = now,
                         skipExpiresAt = null,
                     )
-                    externalLinkDao.upsert(
+                    upsertWithLog(
                         base.copy(
                             state = ExternalLinkState.MATCHED.name,
                             repoOwner = top.owner,
@@ -278,6 +293,7 @@ class ExternalImportRepositoryImpl(
                             matchConfidence = top.confidence,
                             lastReviewedAt = now,
                         ),
+                        callsite = "importAutoMatched",
                     )
                 }
                 outcome
@@ -289,6 +305,7 @@ class ExternalImportRepositoryImpl(
                     }
             }
         }
+        debug.i { "importAutoMatched EXIT linked=$linked failed=$failed" }
         runCatching { telemetry.importAutoLinked(countBucket = bucketCount(linked)) }
             .onFailure { Logger.d { "telemetry importAutoLinked failed: ${it.message}" } }
         return ImportSummary(attempted = matches.size, linked = linked, failed = failed)
@@ -300,6 +317,7 @@ class ExternalImportRepositoryImpl(
         repo: String,
         source: String,
     ): Result<Unit> {
+        debug.i { "linkManually pkg=$packageName repo=$owner/$repo source=$source" }
         val now = nowMillis()
         return runCatching {
             val existing = externalLinkDao.get(packageName)
@@ -316,7 +334,7 @@ class ExternalImportRepositoryImpl(
                 lastReviewedAt = now,
                 skipExpiresAt = null,
             )
-            externalLinkDao.upsert(
+            upsertWithLog(
                 base.copy(
                     state = ExternalLinkState.MATCHED.name,
                     repoOwner = owner,
@@ -325,6 +343,7 @@ class ExternalImportRepositoryImpl(
                     matchConfidence = 1.0,
                     lastReviewedAt = now,
                 ),
+                callsite = "linkManually",
             )
         }.onFailure { if (it is CancellationException) throw it }
     }
@@ -333,6 +352,7 @@ class ExternalImportRepositoryImpl(
         packageName: String,
         neverAsk: Boolean,
     ) {
+        debug.i { "skipPackage pkg=$packageName neverAsk=$neverAsk" }
         val existing = externalLinkDao.get(packageName)
         val state = if (neverAsk) ExternalLinkState.NEVER_ASK else ExternalLinkState.SKIPPED
         val now = nowMillis()
@@ -355,11 +375,12 @@ class ExternalImportRepositoryImpl(
                 lastReviewedAt = now,
                 skipExpiresAt = skipExpiresAt,
             )
-        externalLinkDao.upsert(row)
+        upsertWithLog(row, callsite = "skipPackage")
     }
 
     override suspend fun unlink(packageName: String) {
-        externalLinkDao.deleteByPackageName(packageName)
+        debug.i { "unlink pkg=$packageName" }
+        deleteWithLog(packageName, callsite = "unlink")
         candidateSnapshot.update { it - packageName }
     }
 
@@ -378,10 +399,11 @@ class ExternalImportRepositoryImpl(
     }
 
     override suspend fun restoreDecision(snapshot: ExternalDecisionSnapshot) {
+        debug.i { "restoreDecision pkg=${snapshot.packageName} state=${snapshot.state}" }
         val now = nowMillis()
         val state = snapshot.state ?: ExternalLinkState.PENDING_REVIEW
         val existing = externalLinkDao.get(snapshot.packageName)
-        externalLinkDao.upsert(
+        upsertWithLog(
             (existing ?: ExternalLinkEntity(
                 packageName = snapshot.packageName,
                 state = state.name,
@@ -403,6 +425,7 @@ class ExternalImportRepositoryImpl(
                 skipExpiresAt = snapshot.skipExpiresAt,
                 lastReviewedAt = now,
             ),
+            callsite = "restoreDecision",
         )
     }
 
@@ -440,11 +463,13 @@ class ExternalImportRepositoryImpl(
     }
 
     override suspend fun syncSigningFingerprintSeed() {
+        debug.i { "syncSigningFingerprintSeed ENTER" }
         val started = nowMillis()
         var rowsAdded = 0
         try {
             val lastObservedAt = runCatching { signingFingerprintDao.lastSyncTimestamp() }
                 .getOrNull()
+            debug.i { "syncSigningFingerprintSeed lastObservedAt=$lastObservedAt" }
             var cursor: String? = null
             var pages = 0
             paging@ while (pages < MAX_SEED_PAGES) {
@@ -456,6 +481,7 @@ class ExternalImportRepositoryImpl(
                 val response = pageResult.getOrElse { error ->
                     if (error is CancellationException) throw error
                     Logger.w(error) { "signing-seeds fetch failed on page $pages; aborting" }
+                    debug.w(error) { "syncSigningFingerprintSeed page $pages fetch failed" }
                     break@paging
                 }
                 val rows = response.rows.map { row ->
@@ -481,7 +507,9 @@ class ExternalImportRepositoryImpl(
             throw e
         } catch (e: Exception) {
             Logger.w(e) { "signing-seeds sync aborted" }
+            debug.w(e) { "syncSigningFingerprintSeed aborted" }
         }
+        debug.i { "syncSigningFingerprintSeed EXIT rowsAdded=$rowsAdded durationMs=${nowMillis() - started}" }
         emitSeedSyncTelemetry(rowsAdded, nowMillis() - started)
     }
 
@@ -615,6 +643,7 @@ class ExternalImportRepositoryImpl(
         }
 
     companion object {
+        const val E1_DEBUG_TAG = "E1Debug"
         private val INITIAL_SCAN_COMPLETED_AT_KEY = longPreferencesKey("external_import_initial_scan_at")
         private const val SKIP_TTL_MILLIS: Long = 7L * 24 * 60 * 60 * 1000
         private const val MATCH_BATCH_SIZE = 25

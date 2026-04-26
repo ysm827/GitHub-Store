@@ -110,10 +110,10 @@ class AppsViewModel(
                     count to dismissedAt
                 }
                 .collect { (count, dismissedAt) ->
-                    // Banner re-shows only when the live count exceeds the count
-                    // captured at dismiss time. Without this, every DAO emission
-                    // (delta scan, package event) overrides the user's dismiss.
                     val shouldShow = count >= BANNER_THRESHOLD && count > dismissedAt
+                    logger.withTag("E1Debug").info(
+                        "AppsViewModel emit count=$count dismissedAt=$dismissedAt show=$shouldShow",
+                    )
                     _state.update {
                         it.copy(
                             pendingExternalImportCount = count,
