@@ -19,11 +19,15 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.LinkOff
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.OpenInBrowser
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -41,8 +45,10 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
@@ -59,6 +65,7 @@ import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
+import zed.rainxch.core.domain.model.InstallSource
 import zed.rainxch.core.presentation.components.ScrollbarContainer
 import zed.rainxch.core.presentation.locals.LocalScrollbarEnabled
 import zed.rainxch.core.presentation.theme.GithubStoreTheme
@@ -280,6 +287,49 @@ fun DetailsRoot(
                 TextButton(
                     onClick = {
                         viewModel.onAction(DetailsAction.OnDismissUninstallConfirmation)
+                    },
+                ) {
+                    Text(text = stringResource(Res.string.cancel))
+                }
+            },
+        )
+    }
+
+    if (state.showUnlinkConfirmation) {
+        val appName = state.installedApp?.appName ?: ""
+        AlertDialog(
+            onDismissRequest = {
+                viewModel.onAction(DetailsAction.OnDismissUnlinkConfirmation)
+            },
+            title = {
+                // TODO i18n: extract to strings.xml
+                Text(text = "Unlink this app?")
+            },
+            text = {
+                // TODO i18n: extract to strings.xml
+                Text(
+                    text =
+                        "We'll stop tracking $appName as installed from this repo. " +
+                            "The app stays on your device — only the link is removed.",
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.onAction(DetailsAction.OnConfirmUnlinkExternalApp)
+                    },
+                ) {
+                    // TODO i18n: extract to strings.xml
+                    Text(
+                        text = "Unlink",
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.onAction(DetailsAction.OnDismissUnlinkConfirmation)
                     },
                 ) {
                     Text(text = stringResource(Res.string.cancel))
@@ -693,6 +743,51 @@ private fun DetailsTopbar(
                             contentDescription = stringResource(Res.string.open_repository),
                             modifier = Modifier.size(24.dp),
                         )
+                    }
+                }
+
+                // External-import unlink lives in an overflow menu so it's
+                // discoverable without taking up scarce topbar space — and
+                // only appears for MANUAL-tagged installs (the install
+                // source the wizard / manual link sets).
+                if (state.installedApp?.installSource == InstallSource.MANUAL) {
+                    var menuOpen by remember { mutableStateOf(false) }
+                    Box {
+                        IconButton(
+                            shapes = IconButtonDefaults.shapes(),
+                            onClick = { menuOpen = true },
+                            colors =
+                                IconButtonDefaults.iconButtonColors(
+                                    contentColor = MaterialTheme.colorScheme.onSurface,
+                                ),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.MoreVert,
+                                // TODO i18n: extract to strings.xml
+                                contentDescription = "More options",
+                            )
+                        }
+                        DropdownMenu(
+                            expanded = menuOpen,
+                            onDismissRequest = { menuOpen = false },
+                        ) {
+                            DropdownMenuItem(
+                                text = {
+                                    // TODO i18n: extract to strings.xml
+                                    Text(text = "Unlink from this repo")
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Default.LinkOff,
+                                        contentDescription = null,
+                                    )
+                                },
+                                onClick = {
+                                    menuOpen = false
+                                    onAction(DetailsAction.OnUnlinkExternalApp)
+                                },
+                            )
+                        }
                     }
                 }
             }

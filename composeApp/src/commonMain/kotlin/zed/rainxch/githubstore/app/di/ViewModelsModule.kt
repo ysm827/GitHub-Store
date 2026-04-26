@@ -50,6 +50,7 @@ val viewModelsModule =
                 attestationVerifier = get(),
                 downloadOrchestrator = get(),
                 telemetryRepository = get(),
+                externalImportRepository = get(),
             )
         }
         viewModelOf(::DeveloperProfileViewModel)

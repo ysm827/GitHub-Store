@@ -31,6 +31,7 @@ import zed.rainxch.core.domain.model.Platform
 import zed.rainxch.core.domain.model.RateLimitException
 import zed.rainxch.core.domain.model.isEffectivelyPreRelease
 import zed.rainxch.core.domain.network.Downloader
+import zed.rainxch.core.domain.repository.ExternalImportRepository
 import zed.rainxch.core.domain.repository.FavouritesRepository
 import zed.rainxch.core.domain.repository.InstalledAppsRepository
 import zed.rainxch.core.domain.repository.SeenReposRepository
@@ -114,6 +115,7 @@ class DetailsViewModel(
     private val attestationVerifier: AttestationVerifier,
     private val downloadOrchestrator: DownloadOrchestrator,
     private val telemetryRepository: TelemetryRepository,
+    private val externalImportRepository: ExternalImportRepository,
 ) : ViewModel() {
     private var hasLoadedInitialData = false
     private var currentDownloadJob: Job? = null
@@ -156,6 +158,36 @@ class DetailsViewModel(
                     DetailsEvent.OnMessage(
                         getString(Res.string.failed_to_uninstall, installedApp.packageName),
                     ),
+                )
+            }
+        }
+    }
+
+    private fun confirmUnlinkExternalApp() {
+        _state.update { it.copy(showUnlinkConfirmation = false) }
+        val installedApp = _state.value.installedApp ?: return
+        val packageName = installedApp.packageName
+        logger.debug("Unlinking externally-imported app: $packageName")
+        viewModelScope.launch {
+            try {
+                // installed_apps + external_links must move together so the
+                // next scan re-proposes a match instead of treating the row
+                // as a healthy tracked app on a stale link.
+                installedAppsRepository.executeInTransaction {
+                    externalImportRepository.unlink(packageName)
+                    installedAppsRepository.deleteInstalledApp(packageName)
+                }
+                // TODO i18n: extract to strings.xml
+                _events.send(
+                    DetailsEvent.OnMessage("Unlinked. We'll re-suggest a match next scan."),
+                )
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                logger.error("Failed to unlink $packageName: ${e.message}")
+                // TODO i18n: extract to strings.xml
+                _events.send(
+                    DetailsEvent.OnMessage("Couldn't unlink — try again."),
                 )
             }
         }
@@ -207,6 +239,18 @@ class DetailsViewModel(
 
             DetailsAction.UninstallApp -> {
                 uninstallApp()
+            }
+
+            DetailsAction.OnUnlinkExternalApp -> {
+                _state.update { it.copy(showUnlinkConfirmation = true) }
+            }
+
+            DetailsAction.OnDismissUnlinkConfirmation -> {
+                _state.update { it.copy(showUnlinkConfirmation = false) }
+            }
+
+            DetailsAction.OnConfirmUnlinkExternalApp -> {
+                confirmUnlinkExternalApp()
             }
 
             is DetailsAction.DownloadAsset -> {
