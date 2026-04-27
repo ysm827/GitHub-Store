@@ -373,7 +373,13 @@ fun AppNavigation(
                             restoreState = true
                         }
                     },
-                    isUpdateAvailable = appsState.apps.any { it.installedApp.isUpdateAvailable },
+                    // Badge fires when either an update is waiting OR pending
+                    // import candidates need review. The badge is a single dot
+                    // — a union of the two conditions is honest "you have
+                    // something to look at on this tab".
+                    isUpdateAvailable =
+                        appsState.apps.any { it.installedApp.isUpdateAvailable } ||
+                            appsState.showImportProposalBanner,
                     isLiquidGlassEnabled = isLiquidGlassEnabled,
                     modifier =
                         Modifier
