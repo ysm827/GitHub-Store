@@ -67,7 +67,7 @@ Content-Type: application/json
 
 **Other status codes:**
 - `400` — invalid body
-- `429` — rate limited; include `Retry-After` (client schedules WorkManager retry)
+- `429` — rate limited; include `Retry-After` (in seconds). **Current client behavior:** `BackendApiClient.postExternalMatch` throws `RateLimitedException` on 429 and `ExternalImportRepositoryImpl.resolveMatches` logs the failure per-batch and continues with the remaining batches; no automatic WorkManager-backed retry is scheduled today. The plan called for WorkManager retry on `Retry-After` but it isn't wired yet — a backend that hard-rate-limits aggressively will see partial-result wizard sessions until that retry path is implemented in `resolveMatches`.
 - `503` — partial outage (client falls back to manifest-only)
 
 **Server-side scoring (per plan §3.2):**
@@ -76,7 +76,7 @@ Content-Type: application/json
 - Else → score top 5 search results: exact-name match +0.4, substring +0.2, owner login matches packageName author segment +0.2, star bucket +0.05/0.10/0.15, has APK assets in last 5 releases +0.10 (else **−0.20** — heavy penalty for no-APK repos), description contains "Android"/"APK" +0.05
 - Cap search-only confidence at 0.85 (keeps out of auto-link tier)
 
-**Cache:** 24h server-side keyed on `(packageName, appLabel)`. Excludes `signingFingerprint` from the cache key so a returning user with a different fingerprint gets a fresh look-up.
+**Cache:** 24h server-side keyed on `(packageName, appLabel, signingFingerprint)`. Including `signingFingerprint` in the key means a returning user with a different fingerprint (e.g., reinstalled the app from a different source after a key rotation) bypasses the cache and gets a fresh look-up. If `signingFingerprint` is null, treat the null itself as part of the key — don't merge null-fingerprint hits with the same package's known-fingerprint hits. (Original plan §3.2 wording was inverted — please use this clarified version.)
 
 **Rate limit:** 60 req/hour/IP. Include `Retry-After` on 429.
 
