@@ -37,6 +37,7 @@ import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.FileDownload
 import androidx.compose.material.icons.outlined.FileUpload
 import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -122,6 +123,7 @@ import zed.rainxch.githubstore.core.presentation.res.currently_updating
 import zed.rainxch.githubstore.core.presentation.res.downloading
 import zed.rainxch.githubstore.core.presentation.res.error_with_message
 import zed.rainxch.githubstore.core.presentation.res.export_apps
+import zed.rainxch.githubstore.core.presentation.res.external_import_rescan_menu
 import zed.rainxch.githubstore.core.presentation.res.import_apps
 import zed.rainxch.githubstore.core.presentation.res.installed_apps
 import zed.rainxch.githubstore.core.presentation.res.installing
@@ -298,6 +300,16 @@ fun AppsScreen(
                                 },
                                 leadingIcon = {
                                     Icon(Icons.Outlined.FileDownload, contentDescription = null)
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(Res.string.external_import_rescan_menu)) },
+                                onClick = {
+                                    showOverflowMenu = false
+                                    onAction(AppsAction.OnRescanForGithubApps)
+                                },
+                                leadingIcon = {
+                                    Icon(Icons.Outlined.Search, contentDescription = null)
                                 },
                             )
                         }

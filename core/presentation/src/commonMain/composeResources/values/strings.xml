@@ -851,6 +851,7 @@
     <string name="external_import_auto_summary_more_count">+%1$d more</string>
     <string name="external_import_list_add_manually">Don\'t see your app? Add manually</string>
     <string name="external_import_empty_add_manually">Add an app from another store</string>
+    <string name="external_import_rescan_menu">Scan for GitHub apps</string>
 
     <!-- E1: Details unlink dialog -->
     <string name="details_unlink_external_app_menu">Unlink from this repo</string>
