@@ -96,9 +96,9 @@ fun SmartInstallButton(
 
     val isSameVersionInstalled =
         isInstalled &&
-            normalizeVersion(installedApp.installedVersion) ==
-            normalizeVersion(
-                state.selectedRelease?.tagName ?: "",
+            VersionMath.isSameVersion(
+                installedApp.installedVersion,
+                state.selectedRelease?.tagName,
             )
 
     val enabled =
@@ -648,8 +648,6 @@ private fun AttestationBadge(attestationStatus: AttestationStatus) {
         }
     }
 }
-
-private fun normalizeVersion(version: String): String = version.removePrefix("v").removePrefix("V").trim()
 
 private fun formatFileSize(bytes: Long): String =
     when {
