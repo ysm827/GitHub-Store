@@ -41,6 +41,8 @@ Content-Type: application/json
 | `candidates[].manifestHint.owner` | string\|null | optional | `^[\w.-]{1,39}$` |
 | `candidates[].manifestHint.repo` | string\|null | optional | `^[\w.-]{1,100}$` |
 
+**`manifestHint` semantics.** The entire `candidates[].manifestHint` object MAY be omitted when the client found no in-APK hint; today's client always sends it as `{ "owner": null, "repo": null }` for symmetry, but backends should treat omission and a present-but-fully-null object identically (no hint provided). Validation runs on each non-null field independently — e.g., if `manifestHint.owner` is null and `manifestHint.repo` is non-null, only `manifestHint.repo` is regex-validated against `^[\w.-]{1,100}$`. A present `manifestHint` with both `owner` AND `repo` non-null is the only shape that should drive the manifest-hint scoring branch; partial values (one null, one not) should be treated as no hint and fall through to the search/fingerprint paths.
+
 **Response (200):**
 
 ```json
@@ -75,6 +77,8 @@ Content-Type: application/json
 - If `signingFingerprint` present → look up in `signing_fingerprint → (owner, repo)` table → `fingerprint` match at confidence 0.92
 - Else → score top 5 search results: exact-name match +0.4, substring +0.2, owner login matches packageName author segment +0.2, star bucket +0.05/0.10/0.15, has APK assets in last 5 releases +0.10 (else **−0.20** — heavy penalty for no-APK repos), description contains "Android"/"APK" +0.05
 - Cap search-only confidence at 0.85 (keeps out of auto-link tier)
+
+**Confidence clamping.** Backend MUST clamp every emitted `confidence` to `[0.0, 1.0]` before serialising the response. The −0.20 no-APK penalty plus other negative signals can produce a negative pre-clamp score for very weak matches; clamp those to 0.0 rather than emitting negative values. Rationale: client tier logic uses ≥0.85 (auto-link), 0.5..0.85 (preselected wizard suggestion), <0.5 (wizard with no preselect), and `RepoCandidateRow` displays `confidence * 100` percent rounded to int — client also runs a defensive `coerceIn(0, 100)` on the percentage but treating that as the source of truth on the wire would let invalid backend payloads slip through analytics. Manifest (1.0) and fingerprint (0.92) paths are already fixed values and don't require clamping; only the search-scoring path needs it.
 
 **Cache:** 24h server-side keyed on `(packageName, appLabel, signingFingerprint)`. Including `signingFingerprint` in the key means a returning user with a different fingerprint (e.g., reinstalled the app from a different source after a key rotation) bypasses the cache and gets a fresh look-up. If `signingFingerprint` is null, treat the null itself as part of the key — don't merge null-fingerprint hits with the same package's known-fingerprint hits. (Original plan §3.2 wording was inverted — please use this clarified version.)
 
