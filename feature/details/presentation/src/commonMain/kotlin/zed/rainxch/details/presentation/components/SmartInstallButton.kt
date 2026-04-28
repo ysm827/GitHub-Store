@@ -48,6 +48,7 @@ import io.github.fletchmckee.liquid.rememberLiquidState
 import org.jetbrains.compose.resources.stringResource
 import zed.rainxch.core.domain.model.GithubAsset
 import zed.rainxch.core.domain.model.GithubUser
+import zed.rainxch.core.domain.util.VersionMath
 import zed.rainxch.details.presentation.DetailsAction
 import zed.rainxch.details.presentation.DetailsState
 import zed.rainxch.details.presentation.model.AttestationStatus
@@ -253,7 +254,11 @@ fun SmartInstallButton(
                 )
             }
 
-            isInstalled && installedApp.installedVersion != state.selectedRelease?.tagName -> {
+            isInstalled &&
+                !VersionMath.isSameVersion(
+                    installedApp.installedVersion,
+                    state.selectedRelease?.tagName,
+                ) -> {
                 stringResource(
                     Res.string.install_version,
                     state.selectedRelease?.tagName ?: "",

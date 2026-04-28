@@ -46,6 +46,7 @@ import zed.rainxch.core.domain.model.GithubRelease
 import zed.rainxch.core.domain.model.GithubRepoSummary
 import zed.rainxch.core.domain.model.GithubUserProfile
 import zed.rainxch.core.domain.model.InstalledApp
+import zed.rainxch.core.domain.util.VersionMath
 import zed.rainxch.core.presentation.components.ForkBadge
 import zed.rainxch.core.presentation.components.PlatformChip
 import zed.rainxch.core.presentation.utils.formatReleasedAt
@@ -207,7 +208,9 @@ fun AppHeader(
                         )
                     }
 
-                    if (installedApp != null && installedApp.installedVersion != release?.tagName) {
+                    if (installedApp != null &&
+                        !VersionMath.isSameVersion(installedApp.installedVersion, release?.tagName)
+                    ) {
                         Text(
                             text =
                                 stringResource(

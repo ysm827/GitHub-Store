@@ -7,6 +7,7 @@ import zed.rainxch.core.domain.model.GithubUserProfile
 import zed.rainxch.core.domain.model.InstalledApp
 import zed.rainxch.core.domain.model.SystemArchitecture
 import zed.rainxch.core.domain.model.isEffectivelyPreRelease
+import zed.rainxch.core.domain.util.VersionMath
 import zed.rainxch.details.domain.model.ReleaseCategory
 import zed.rainxch.details.domain.model.RepoStats
 import zed.rainxch.details.presentation.model.AttestationStatus
@@ -139,12 +140,13 @@ data class DetailsState(
             val stable = latestStableRelease ?: return false
             if (!latestStableHasInstallableAsset) return false
             val installedIsPreRelease =
-                allReleases.firstOrNull { it.tagName == app.installedVersion }
+                allReleases.firstOrNull { VersionMath.isSameVersion(it.tagName, app.installedVersion) }
                     ?.isEffectivelyPreRelease() == true
             if (!installedIsPreRelease) return false
             // Don't offer the button if the stable release IS the
-            // one the user has already (same tag string).
-            return stable.tagName != app.installedVersion
+            // one the user has already (same version, ignoring tag-prefix
+            // drift like "v" vs "" or "release-" vs "").
+            return !VersionMath.isSameVersion(stable.tagName, app.installedVersion)
         }
 
     /**
