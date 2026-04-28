@@ -96,6 +96,20 @@ object VersionMath {
         return compareNormalized(normA, normB)
     }
 
+    /**
+     * Returns `true` when both inputs normalize to the same version.
+     * Tolerates prefix/format drift the GitHub feed routinely produces
+     * (e.g. release tag `v3.1.3` vs system-reported `3.1.3`,
+     * `release-1.2.0` vs `1.2.0`, `1.2.3+sha.abcd` vs `1.2.3`).
+     *
+     * Two empty/null/blank inputs are treated as equal — this is fine
+     * for the UI-text guards that use this (don't render a redundant
+     * "installed: …" subtext when there's nothing meaningful to show).
+     * Callers that need a stricter "both present and equal" check
+     * should compare [normalizeVersion] against `""` first.
+     */
+    fun isSameVersion(a: String?, b: String?): Boolean = compareVersions(a, b) == 0
+
     private fun compareNormalized(a: String, b: String): Int {
         if (a == b) return 0
         val parsedA = parseSemanticVersion(a)
