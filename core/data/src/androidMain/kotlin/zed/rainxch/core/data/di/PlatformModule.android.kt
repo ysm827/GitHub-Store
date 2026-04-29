@@ -30,6 +30,8 @@ import zed.rainxch.core.data.utils.AndroidAppLauncher
 import zed.rainxch.core.data.utils.AndroidBrowserHelper
 import zed.rainxch.core.data.utils.AndroidClipboardHelper
 import zed.rainxch.core.data.utils.AndroidShareManager
+import zed.rainxch.core.data.network.AndroidDigestVerifier
+import zed.rainxch.core.domain.network.DigestVerifier
 import zed.rainxch.core.domain.network.Downloader
 import zed.rainxch.core.domain.system.DownloadOrchestrator
 import zed.rainxch.core.domain.system.DownloadProgressNotifier
@@ -147,6 +149,10 @@ actual val corePlatformModule =
 
         single<BrowserHelper> {
             AndroidBrowserHelper(androidContext())
+        }
+
+        single<DigestVerifier> {
+            AndroidDigestVerifier()
         }
 
         single<ClipboardHelper> {

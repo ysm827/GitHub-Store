@@ -29,6 +29,8 @@ import zed.rainxch.core.domain.system.UpdateScheduleManager
 import zed.rainxch.core.data.services.LocalizationManager
 import zed.rainxch.core.data.services.DesktopInstallerStatusProvider
 import zed.rainxch.core.data.utils.DesktopShareManager
+import zed.rainxch.core.data.network.DesktopDigestVerifier
+import zed.rainxch.core.domain.network.DigestVerifier
 import zed.rainxch.core.domain.network.Downloader
 import zed.rainxch.core.domain.system.PackageMonitor
 import zed.rainxch.core.domain.utils.AppLauncher
@@ -84,6 +86,10 @@ actual val corePlatformModule = module {
 
     single<BrowserHelper> {
         DesktopBrowserHelper()
+    }
+
+    single<DigestVerifier> {
+        DesktopDigestVerifier()
     }
 
     single<ClipboardHelper> {
