@@ -11,8 +11,8 @@ import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Feedback
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.QuestionMark
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -72,13 +72,13 @@ fun LazyListScope.about(
             HorizontalDivider()
 
             AboutItem(
-                icon = Icons.Filled.QuestionMark,
-                title = stringResource(Res.string.help_support),
+                icon = Icons.Default.Feedback,
+                title = stringResource(Res.string.feedback_send),
                 actions = {
                     IconButton(
                         shape = IconButtonDefaults.shapes().shape,
                         onClick = {
-                            onAction(TweaksAction.OnHelpClick)
+                            onAction(TweaksAction.OnFeedbackClick)
                         },
                         colors =
                             IconButtonDefaults.iconButtonColors(
