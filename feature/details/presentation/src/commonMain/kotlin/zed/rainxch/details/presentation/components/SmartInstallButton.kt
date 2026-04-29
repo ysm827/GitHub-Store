@@ -94,12 +94,22 @@ fun SmartInstallButton(
     val isUpdateAvailable =
         installedApp?.isUpdateAvailable == true && !installedApp.isPendingInstall
 
+    // VersionMath.isSameVersion treats two blank inputs as equal (both
+    // normalize to ""), which would otherwise drive the CTA to "Open" or
+    // skip the "Install version X" branch when we actually have no version
+    // info. Require both sides to be present and non-blank before letting
+    // the equality check influence the CTA, and reuse the trimmed
+    // selected tag downstream so it can never render as an empty string.
+    val normInstalled =
+        installedApp?.installedVersion?.trim()?.takeIf { it.isNotBlank() }
+    val normSelected =
+        state.selectedRelease?.tagName?.trim()?.takeIf { it.isNotBlank() }
+
     val isSameVersionInstalled =
         isInstalled &&
-            VersionMath.isSameVersion(
-                installedApp.installedVersion,
-                state.selectedRelease?.tagName,
-            )
+            normInstalled != null &&
+            normSelected != null &&
+            VersionMath.isSameVersion(normInstalled, normSelected)
 
     val enabled =
         remember(primaryAsset, isDownloading, isInstalling) {
@@ -255,14 +265,10 @@ fun SmartInstallButton(
             }
 
             isInstalled &&
-                !VersionMath.isSameVersion(
-                    installedApp.installedVersion,
-                    state.selectedRelease?.tagName,
-                ) -> {
-                stringResource(
-                    Res.string.install_version,
-                    state.selectedRelease?.tagName ?: "",
-                )
+                normInstalled != null &&
+                normSelected != null &&
+                !VersionMath.isSameVersion(normInstalled, normSelected) -> {
+                stringResource(Res.string.install_version, normSelected)
             }
 
             else -> {
