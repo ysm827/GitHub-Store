@@ -1,0 +1,137 @@
+package zed.rainxch.tweaks.presentation.feedback
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import zed.rainxch.core.domain.getOsVersion
+import zed.rainxch.core.domain.getPlatform
+import zed.rainxch.core.domain.getSystemLocaleTag
+import zed.rainxch.core.domain.model.InstallerType
+import zed.rainxch.core.domain.model.Platform
+import zed.rainxch.core.domain.repository.TweaksRepository
+import zed.rainxch.core.domain.utils.BrowserHelper
+import zed.rainxch.profile.domain.repository.ProfileRepository
+import zed.rainxch.tweaks.presentation.feedback.model.DiagnosticsInfo
+import zed.rainxch.tweaks.presentation.feedback.model.FeedbackChannel
+import zed.rainxch.tweaks.presentation.feedback.util.FeedbackComposer
+
+class FeedbackViewModel(
+    private val browserHelper: BrowserHelper,
+    private val tweaksRepository: TweaksRepository,
+    private val profileRepository: ProfileRepository,
+) : ViewModel() {
+    private val _state = MutableStateFlow(FeedbackState())
+    val state = _state.asStateFlow()
+
+    private val _events = Channel<FeedbackEvent>()
+    val events = _events.receiveAsFlow()
+
+    init {
+        viewModelScope.launch {
+            _state.update { it.copy(diagnostics = collectDiagnostics()) }
+        }
+    }
+
+    fun onAction(action: FeedbackAction) {
+        when (action) {
+            is FeedbackAction.OnCategoryChange ->
+                _state.update { it.copy(category = action.category) }
+            is FeedbackAction.OnTopicChange ->
+                _state.update { it.copy(topic = action.topic) }
+            is FeedbackAction.OnTitleChange ->
+                _state.update { it.copy(title = action.value) }
+            is FeedbackAction.OnDescriptionChange ->
+                _state.update { it.copy(description = action.value) }
+            is FeedbackAction.OnStepsToReproduceChange ->
+                _state.update { it.copy(stepsToReproduce = action.value) }
+            is FeedbackAction.OnExpectedActualChange ->
+                _state.update { it.copy(expectedActual = action.value) }
+            is FeedbackAction.OnUseCaseChange ->
+                _state.update { it.copy(useCase = action.value) }
+            is FeedbackAction.OnProposedSolutionChange ->
+                _state.update { it.copy(proposedSolution = action.value) }
+            is FeedbackAction.OnCurrentBehaviourChange ->
+                _state.update { it.copy(currentBehaviour = action.value) }
+            is FeedbackAction.OnDesiredBehaviourChange ->
+                _state.update { it.copy(desiredBehaviour = action.value) }
+            FeedbackAction.OnAttachDiagnosticsToggle ->
+                _state.update { it.copy(attachDiagnostics = !it.attachDiagnostics) }
+            FeedbackAction.OnSendViaEmail -> send(FeedbackChannel.EMAIL)
+            FeedbackAction.OnSendViaGithub -> send(FeedbackChannel.GITHUB)
+            FeedbackAction.OnDismiss -> resetForm()
+        }
+    }
+
+    private fun send(channel: FeedbackChannel) {
+        val current = _state.value
+        if (!current.canSend) return
+        _state.update { it.copy(isSending = true) }
+        viewModelScope.launch {
+            var failed = false
+            val url = FeedbackComposer.composeUrl(current, channel)
+            browserHelper.openUrl(url) { error ->
+                failed = true
+                viewModelScope.launch {
+                    _events.send(FeedbackEvent.OnSendError(error))
+                }
+            }
+            // Hold the disabled state briefly so the user sees the
+            // buttons disable and can't double-tap; long enough to
+            // also let any synchronous onFailure invocation arrive.
+            delay(250)
+            _state.update { it.copy(isSending = false) }
+            if (!failed) {
+                _events.send(FeedbackEvent.OnSent(channel))
+                resetForm()
+            }
+        }
+    }
+
+    private fun resetForm() {
+        // Preserve already-collected diagnostics so we don't re-query
+        // repositories when the sheet reopens.
+        _state.update { previous ->
+            FeedbackState(diagnostics = previous.diagnostics)
+        }
+    }
+
+    private suspend fun collectDiagnostics(): DiagnosticsInfo {
+        val installerType = tweaksRepository.getInstallerType().first()
+        val platform = getPlatform()
+        val installerString =
+            if (platform == Platform.ANDROID) {
+                when (installerType) {
+                    InstallerType.DEFAULT -> "Default"
+                    InstallerType.SHIZUKU -> "Shizuku"
+                }
+            } else {
+                null
+            }
+        val user = profileRepository.getUser().firstOrNull()
+        val appLanguage = tweaksRepository.getAppLanguage().firstOrNull()
+        return DiagnosticsInfo(
+            appVersion = profileRepository.getVersionName(),
+            platform = platform.displayName(),
+            osVersion = getOsVersion(),
+            locale = appLanguage ?: getSystemLocaleTag(),
+            installerType = installerString,
+            githubUsername = user?.username,
+        )
+    }
+
+    private fun Platform.displayName(): String =
+        when (this) {
+            Platform.ANDROID -> "Android"
+            Platform.WINDOWS -> "Windows"
+            Platform.MACOS -> "macOS"
+            Platform.LINUX -> "Linux"
+        }
+}

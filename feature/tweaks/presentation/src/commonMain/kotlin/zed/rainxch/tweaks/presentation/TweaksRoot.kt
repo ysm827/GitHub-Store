@@ -41,6 +41,8 @@ import zed.rainxch.tweaks.presentation.components.ClearDownloadsDialog
 import zed.rainxch.tweaks.presentation.components.sections.about
 import zed.rainxch.tweaks.presentation.components.sections.othersSection
 import zed.rainxch.tweaks.presentation.components.sections.settings
+import zed.rainxch.tweaks.presentation.feedback.components.FeedbackBottomSheet
+import zed.rainxch.tweaks.presentation.feedback.model.FeedbackChannel
 
 @Composable
 fun TweaksRoot(viewModel: TweaksViewModel = koinViewModel()) {
@@ -163,6 +165,34 @@ fun TweaksRoot(viewModel: TweaksViewModel = koinViewModel()) {
             },
             onConfirm = {
                 viewModel.onAction(TweaksAction.OnClearDownloadsConfirm)
+            },
+        )
+    }
+
+    if (state.isFeedbackSheetVisible) {
+        FeedbackBottomSheet(
+            onDismiss = {
+                viewModel.onAction(TweaksAction.OnFeedbackDismiss)
+            },
+            onSent = { channel ->
+                viewModel.onAction(TweaksAction.OnFeedbackDismiss)
+                coroutineScope.launch {
+                    val msg =
+                        when (channel) {
+                            FeedbackChannel.EMAIL ->
+                                getString(Res.string.feedback_send_success_email)
+                            FeedbackChannel.GITHUB ->
+                                getString(Res.string.feedback_send_success_github)
+                        }
+                    snackbarState.showSnackbar(msg)
+                }
+            },
+            onError = { error ->
+                coroutineScope.launch {
+                    snackbarState.showSnackbar(
+                        getString(Res.string.feedback_send_error, error),
+                    )
+                }
             },
         )
     }

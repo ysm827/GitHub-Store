@@ -49,6 +49,7 @@ data class TweaksState(
      * which chip is selected.
      */
     val selectedAppLanguage: String? = null,
+    val isFeedbackSheetVisible: Boolean = false,
 ) {
     /** Effective provider to render as "selected" in the UI — draft
      *  overrides persisted when a pending selection is in flight. */

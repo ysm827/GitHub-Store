@@ -1,5 +1,6 @@
 package zed.rainxch.core.domain
 
+import java.util.Locale
 import zed.rainxch.core.domain.model.Platform
 
 actual fun getPlatform(): Platform =
@@ -8,3 +9,8 @@ actual fun getPlatform(): Platform =
         System.getProperty("os.name").lowercase().contains("mac") -> Platform.MACOS
         else -> Platform.LINUX
     }
+
+actual fun getOsVersion(): String = System.getProperty("os.version") ?: "unknown"
+
+actual fun getSystemLocaleTag(): String =
+    Locale.getDefault().toLanguageTag().takeIf { it.isNotBlank() } ?: "und"

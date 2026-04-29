@@ -15,6 +15,7 @@ import zed.rainxch.recentlyviewed.presentation.RecentlyViewedViewModel
 import zed.rainxch.search.presentation.SearchViewModel
 import zed.rainxch.starred.presentation.StarredReposViewModel
 import zed.rainxch.tweaks.presentation.TweaksViewModel
+import zed.rainxch.tweaks.presentation.feedback.FeedbackViewModel
 
 val viewModelsModule =
     module {
@@ -60,5 +61,6 @@ val viewModelsModule =
         viewModelOf(::SearchViewModel)
         viewModelOf(::ProfileViewModel)
         viewModelOf(::TweaksViewModel)
+        viewModelOf(::FeedbackViewModel)
         viewModelOf(::StarredReposViewModel)
     }

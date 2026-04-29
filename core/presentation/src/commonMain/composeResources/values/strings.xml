@@ -861,4 +861,48 @@
     <string name="details_unlink_external_app_dialog_confirm">Unlink</string>
     <string name="details_unlink_external_app_success">Unlinked. We\'ll re-suggest a match next scan.</string>
     <string name="details_unlink_external_app_failure">Couldn\'t unlink — try again.</string>
+
+    <!-- Tweaks feature - Feedback -->
+    <string name="feedback_send">Send feedback</string>
+    <string name="feedback_title">Send feedback</string>
+    <string name="feedback_close">Close</string>
+
+    <!-- Feedback - Category -->
+    <string name="feedback_category_label">Category</string>
+    <string name="feedback_category_bug">Bug</string>
+    <string name="feedback_category_feature">Feature request</string>
+    <string name="feedback_category_change">Change request</string>
+    <string name="feedback_category_other">Other</string>
+
+    <!-- Feedback - Topic -->
+    <string name="feedback_topic_label">Topic</string>
+    <string name="feedback_topic_install_update">Install / Update</string>
+    <string name="feedback_topic_search">Search &amp; Discovery</string>
+    <string name="feedback_topic_details">Repo details</string>
+    <string name="feedback_topic_auth">Auth &amp; Account</string>
+    <string name="feedback_topic_ui">UI / UX</string>
+    <string name="feedback_topic_translation">Translation / Language</string>
+    <string name="feedback_topic_performance">Performance</string>
+    <string name="feedback_topic_other">Other</string>
+
+    <!-- Feedback - Form fields -->
+    <string name="feedback_field_title">Title</string>
+    <string name="feedback_field_description">Description</string>
+    <string name="feedback_field_steps">Steps to reproduce</string>
+    <string name="feedback_field_expected_actual">Expected vs actual</string>
+    <string name="feedback_field_use_case">Use case</string>
+    <string name="feedback_field_proposed_solution">Proposed solution</string>
+    <string name="feedback_field_current_behaviour">Current behaviour</string>
+    <string name="feedback_field_desired_behaviour">Desired behaviour</string>
+
+    <!-- Feedback - Diagnostics -->
+    <string name="feedback_diagnostics_header">Diagnostics</string>
+    <string name="feedback_diagnostics_include">Include diagnostics</string>
+
+    <!-- Feedback - Send actions -->
+    <string name="feedback_send_via_email">Send Email</string>
+    <string name="feedback_send_via_github">Open as GitHub Issue</string>
+    <string name="feedback_send_success_email">Thanks — opening your mail client.</string>
+    <string name="feedback_send_success_github">Thanks — opening your browser.</string>
+    <string name="feedback_send_error">Couldn\'t open feedback channel: %1$s</string>
 </resources>
