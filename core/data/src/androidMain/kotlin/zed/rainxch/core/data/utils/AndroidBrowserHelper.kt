@@ -16,6 +16,10 @@ class AndroidBrowserHelper(
             Intent(Intent.ACTION_VIEW, url.toUri()).apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
-        context.startActivity(intent)
+        try {
+            context.startActivity(intent)
+        } catch (e: Exception) {
+            onFailure(e.message ?: "Unable to open the requested URL.")
+        }
     }
 }
