@@ -131,11 +131,16 @@ val coreModule =
         }
 
         single<MirrorRepository> {
-            MirrorRepositoryImpl(
-                preferences = get(),
-                apiClient = get(),
-                appScope = get(),
-            )
+            val repo =
+                MirrorRepositoryImpl(
+                    preferences = get(),
+                    apiClient = get(),
+                    appScope = get(),
+                )
+            // Kick off the ProxyManager mirror-template snapshot collector
+            // so the Ktor interceptor can resolve the template synchronously.
+            ProxyManager.startMirrorCollector(repo, get())
+            repo
         }
 
         single<SeenReposRepository> {
