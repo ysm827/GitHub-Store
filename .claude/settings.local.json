@@ -12,7 +12,11 @@
       "WebFetch(domain:blog.jetbrains.com)",
       "Bash(rtk grep *)",
       "Bash(git checkout *)",
-      "Bash(rtk proxy *)"
+      "Bash(rtk proxy *)",
+      "Bash(git pull *)",
+      "Bash(git cherry-pick *)",
+      "Bash(gh pr create --base main --head chore/drop-legacy-query-hash --title 'Stop sending hashed search queries to legacy /v1/events' --body ' *)",
+      "Bash(gh pr create --base main --head fix/auth-stuck-on-direct-and-dialog-loop --title 'Fix sign-in getting stuck with DNS error + dialog re-firing over auth screen' --body ' *)"
     ]
   }
 }

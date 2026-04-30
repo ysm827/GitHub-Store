@@ -49,4 +49,7 @@ sealed interface GithubStoreGraph {
 
     @Serializable
     data object ExternalImportScreen : GithubStoreGraph
+
+    @Serializable
+    data object MirrorPickerScreen : GithubStoreGraph
 }

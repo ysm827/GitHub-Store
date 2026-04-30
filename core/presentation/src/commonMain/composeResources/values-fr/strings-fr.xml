@@ -96,9 +96,9 @@
 
     <string name="section_appearance">APPARENCE</string>
     <string name="section_language">LANGUE</string>
-    <string name="language_intro">Remplace la langue de l\'interface.</string>
-    <string name="language_picker_title">Langue de l\'application</string>
-    <string name="language_picker_description">Modifie les menus, boutons et messages dans toute l\'application. Ne modifie pas le contenu provenant de GitHub.</string>
+    <string name="language_intro">Remplace la langue de l'interface.</string>
+    <string name="language_picker_title">Langue de l'application</string>
+    <string name="language_picker_description">Modifie les menus, boutons et messages dans toute l'application. Ne modifie pas le contenu provenant de GitHub.</string>
     <string name="language_follow_system">Suivre le système</string>
     <string name="language_restart_required">Redémarrez pour appliquer la nouvelle langue.</string>
     <string name="language_restart_action">Redémarrer</string>
@@ -597,7 +597,7 @@
     <string name="seen_badge">Consulté</string>
     <string name="privacy_section">Confidentialité</string>
     <string name="telemetry_title">Aider à améliorer la recherche</string>
-    <string name="telemetry_description">Partager des données d\'utilisation (recherches, installations, interactions) associées à un identifiant d\'analyse réinitialisable. Aucun détail de compte n\'est partagé.</string>
+    <string name="telemetry_description">Partager des données d'utilisation (recherches, installations, interactions) associées à un identifiant d'analyse réinitialisable. Aucun détail de compte n'est partagé.</string>
     <string name="reset_analytics_id_title">Réinitialiser l'ID d'analytique</string>
     <string name="reset_analytics_id_description">Générer un nouvel ID anonyme, coupant le lien avec la télémétrie passée.</string>
     <string name="analytics_id_reset">ID d'analytique réinitialisé</string>
@@ -708,5 +708,5 @@
     <string name="pat_error_invalid_format">Cela ne ressemble pas à un token GitHub. Les tokens commencent par ghp_ ou github_pat_.</string>
     <string name="pat_error_bad_credentials">Ce token est invalide ou a été révoqué.</string>
     <string name="pat_error_insufficient_scope">Ce token ne dispose pas des autorisations requises.</string>
-    <string name="pat_error_generic">Impossible d\'enregistrer le token. Veuillez réessayer.</string>
+    <string name="pat_error_generic">Impossible d'enregistrer le token. Veuillez réessayer.</string>
 </resources>

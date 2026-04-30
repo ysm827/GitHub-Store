@@ -1,5 +1,10 @@
 package zed.rainxch.core.data.di
 
+import io.ktor.client.HttpClient
+import io.ktor.client.plugins.HttpTimeout
+import io.ktor.client.plugins.defaultRequest
+import io.ktor.client.request.header
+import io.ktor.http.HttpHeaders
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -9,9 +14,13 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
+import org.koin.core.qualifier.named
 import org.koin.dsl.module
+import zed.rainxch.core.data.network.createPlatformHttpClient
 import zed.rainxch.core.data.cache.CacheManager
 import zed.rainxch.core.data.data_source.TokenStore
+import zed.rainxch.core.data.download.MultiSourceDownloaderImpl
+import zed.rainxch.core.data.download.SlowDownloadDetectorImpl
 import zed.rainxch.core.data.services.DefaultDownloadOrchestrator
 import zed.rainxch.core.data.data_source.impl.DefaultTokenStore
 import zed.rainxch.core.data.local.db.AppDatabase
@@ -25,11 +34,13 @@ import zed.rainxch.core.data.local.db.dao.SigningFingerprintDao
 import zed.rainxch.core.data.local.db.dao.StarredRepoDao
 import zed.rainxch.core.data.local.db.dao.UpdateHistoryDao
 import zed.rainxch.core.data.logging.KermitLogger
+import zed.rainxch.core.data.mirror.MirrorRepositoryImpl
 import zed.rainxch.core.data.network.BackendApiClient
 import zed.rainxch.core.data.network.BackendExternalMatchApi
 import zed.rainxch.core.data.network.ExternalMatchApi
 import zed.rainxch.core.data.network.ExternalMatchApiSelector
 import zed.rainxch.core.data.network.GitHubClientProvider
+import zed.rainxch.core.data.network.MirrorApiClient
 import zed.rainxch.core.data.network.MockExternalMatchApi
 import zed.rainxch.core.data.network.ProxyManager
 import zed.rainxch.core.data.network.ProxyManagerSeeding
@@ -53,13 +64,16 @@ import zed.rainxch.core.domain.model.Platform
 import zed.rainxch.core.domain.model.ProxyConfig
 import zed.rainxch.core.domain.model.ProxyScope
 import zed.rainxch.core.domain.network.ProxyTester
+import zed.rainxch.core.domain.network.SlowDownloadDetector
 import zed.rainxch.core.domain.system.DownloadOrchestrator
 import zed.rainxch.core.domain.system.ExternalAppScanner
+import zed.rainxch.core.domain.system.MultiSourceDownloader
 import zed.rainxch.core.domain.repository.AuthenticationState
 import zed.rainxch.core.domain.repository.DeviceIdentityRepository
 import zed.rainxch.core.domain.repository.ExternalImportRepository
 import zed.rainxch.core.domain.repository.FavouritesRepository
 import zed.rainxch.core.domain.repository.InstalledAppsRepository
+import zed.rainxch.core.domain.repository.MirrorRepository
 import zed.rainxch.core.domain.repository.ProxyRepository
 import zed.rainxch.core.domain.repository.RateLimitRepository
 import zed.rainxch.core.domain.repository.SearchHistoryRepository
@@ -119,6 +133,25 @@ val coreModule =
             TweaksRepositoryImpl(
                 preferences = get(),
             )
+        }
+
+        single<MirrorApiClient> {
+            MirrorApiClient(
+                backendApiClient = get(),
+            )
+        }
+
+        single<MirrorRepository> {
+            val repo =
+                MirrorRepositoryImpl(
+                    preferences = get(),
+                    apiClient = get(),
+                    appScope = get(),
+                )
+            // Kick off the ProxyManager mirror-template snapshot collector
+            // so the Ktor interceptor can resolve the template synchronously.
+            ProxyManager.startMirrorCollector(repo, get())
+            repo
         }
 
         single<SeenReposRepository> {
@@ -220,15 +253,31 @@ val coreModule =
             )
         }
 
+        single<MultiSourceDownloader> {
+            MultiSourceDownloaderImpl(
+                downloader = get(),
+            )
+        }
+
+        single<SlowDownloadDetector> {
+            SlowDownloadDetectorImpl(
+                preferences = get(),
+                appScope = get(),
+            )
+        }
+
         // Application-scoped download / install orchestrator. Lives
         // for the process lifetime so downloads survive screen
         // navigation. ViewModels are observers, never owners.
         single<DownloadOrchestrator> {
             DefaultDownloadOrchestrator(
                 downloader = get(),
+                multiSourceDownloader = get(),
+                digestVerifier = get(),
                 installer = get(),
                 installedAppsRepository = get(),
                 pendingInstallNotifier = get(),
+                slowDownloadDetector = get(),
                 appScope = get(),
             )
         }
@@ -294,6 +343,19 @@ val networkModule =
 
         single<RateLimitRepository> {
             RateLimitRepositoryImpl()
+        }
+
+        single<HttpClient>(qualifier = named("test")) {
+            createPlatformHttpClient(ProxyConfig.System).config {
+                install(HttpTimeout) {
+                    requestTimeoutMillis = 5_000
+                    connectTimeoutMillis = 5_000
+                    socketTimeoutMillis = 5_000
+                }
+                defaultRequest {
+                    header(HttpHeaders.UserAgent, "GithubStore/1.0 (KMP)")
+                }
+            }
         }
     }
 

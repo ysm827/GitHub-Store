@@ -1,0 +1,28 @@
+package zed.rainxch.tweaks.presentation.mirror
+
+import org.jetbrains.compose.resources.StringResource
+import zed.rainxch.core.domain.model.MirrorConfig
+import zed.rainxch.core.domain.model.MirrorPreference
+
+data class MirrorPickerState(
+    val mirrors: List<MirrorConfig> = emptyList(),
+    val preference: MirrorPreference = MirrorPreference.Direct,
+    val isCustomDialogVisible: Boolean = false,
+    val customDraft: String = "",
+    val customDraftError: StringResource? = null,
+    val isTesting: Boolean = false,
+    val testResult: TestResult? = null,
+    val isRefreshing: Boolean = false,
+)
+
+sealed interface TestResult {
+    data class Success(val latencyMs: Long) : TestResult
+
+    data class HttpError(val code: Int) : TestResult
+
+    data object Timeout : TestResult
+
+    data object DnsFailure : TestResult
+
+    data class Other(val message: String) : TestResult
+}

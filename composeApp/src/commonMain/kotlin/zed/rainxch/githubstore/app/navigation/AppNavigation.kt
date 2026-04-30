@@ -44,6 +44,9 @@ import zed.rainxch.recentlyviewed.presentation.RecentlyViewedRoot
 import zed.rainxch.search.presentation.SearchRoot
 import zed.rainxch.starred.presentation.StarredReposRoot
 import zed.rainxch.tweaks.presentation.TweaksRoot
+import zed.rainxch.tweaks.presentation.mirror.AutoSuggestMirrorViewModel
+import zed.rainxch.tweaks.presentation.mirror.MirrorPickerRoot
+import zed.rainxch.tweaks.presentation.mirror.components.AutoSuggestMirrorSheet
 
 // Cross-screen "return result" key: set by the external-import wizard's
 // "Add manually" path before navigateUp(), read once by the Apps screen.
@@ -298,8 +301,20 @@ fun AppNavigation(
                     )
                 }
 
+                composable<GithubStoreGraph.MirrorPickerScreen> {
+                    MirrorPickerRoot(
+                        onNavigateBack = { navController.popBackStack() },
+                    )
+                }
+
                 composable<GithubStoreGraph.TweaksScreen> {
-                    TweaksRoot()
+                    TweaksRoot(
+                        onNavigateToMirrorPicker = {
+                            navController.navigate(GithubStoreGraph.MirrorPickerScreen) {
+                                launchSingleTop = true
+                            }
+                        },
+                    )
                 }
 
                 composable<GithubStoreGraph.AppsScreen> { backStackEntry ->
@@ -390,6 +405,22 @@ fun AppNavigation(
                                 bottomNavigationHeight =
                                     with(density) { coordinates.size.height.toDp() }
                             },
+                )
+            }
+
+            val autoSuggestVm: AutoSuggestMirrorViewModel = koinViewModel()
+            val isAutoSuggestVisible by autoSuggestVm.isVisible.collectAsStateWithLifecycle()
+            if (isAutoSuggestVisible) {
+                AutoSuggestMirrorSheet(
+                    onDismiss = autoSuggestVm::dismiss,
+                    onPickOne = {
+                        autoSuggestVm.onPickOneClicked()
+                        navController.navigate(GithubStoreGraph.MirrorPickerScreen) {
+                            launchSingleTop = true
+                        }
+                    },
+                    onMaybeLater = autoSuggestVm::onMaybeLater,
+                    onDontAskAgain = autoSuggestVm::onDontAskAgain,
                 )
             }
         }

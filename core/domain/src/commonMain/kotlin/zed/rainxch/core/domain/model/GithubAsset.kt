@@ -11,4 +11,5 @@ data class GithubAsset(
     val downloadUrl: String,
     val uploader: GithubUser? = null,
     val downloadCount: Long = 0,
+    val digest: String? = null,
 )

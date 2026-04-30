@@ -7,6 +7,7 @@ interface Downloader {
     fun download(
         url: String,
         suggestedFileName: String? = null,
+        bypassMirror: Boolean = false,
     ): Flow<DownloadProgress>
 
     suspend fun saveToFile(

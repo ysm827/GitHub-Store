@@ -12,4 +12,5 @@ data class AssetNetwork(
     @SerialName("browser_download_url") val downloadUrl: String,
     @SerialName("uploader") val uploader: OwnerNetwork? = null,
     @SerialName("download_count") val downloadCount: Long = 0,
+    @SerialName("digest") val digest: String? = null,
 )

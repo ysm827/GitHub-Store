@@ -14,7 +14,9 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import zed.rainxch.core.domain.network.DigestVerifier
 import zed.rainxch.core.domain.network.Downloader
+import zed.rainxch.core.domain.network.SlowDownloadDetector
 import zed.rainxch.core.domain.repository.InstalledAppsRepository
 import zed.rainxch.core.domain.system.DownloadOrchestrator
 import zed.rainxch.core.domain.system.DownloadSpec
@@ -22,6 +24,7 @@ import zed.rainxch.core.domain.system.DownloadStage
 import zed.rainxch.core.domain.system.InstallOutcome
 import zed.rainxch.core.domain.system.InstallPolicy
 import zed.rainxch.core.domain.system.Installer
+import zed.rainxch.core.domain.system.MultiSourceDownloader
 import zed.rainxch.core.domain.system.OrchestratedDownload
 import zed.rainxch.core.domain.system.PendingInstallNotifier
 import zed.rainxch.core.domain.util.AssetFileName
@@ -71,9 +74,12 @@ import kotlin.random.Random
  */
 class DefaultDownloadOrchestrator(
     private val downloader: Downloader,
+    private val multiSourceDownloader: MultiSourceDownloader,
+    private val digestVerifier: DigestVerifier,
     private val installer: Installer,
     private val installedAppsRepository: InstalledAppsRepository,
     private val pendingInstallNotifier: PendingInstallNotifier,
+    private val slowDownloadDetector: SlowDownloadDetector,
     private val appScope: CoroutineScope,
 ) : DownloadOrchestrator {
     private companion object {
@@ -222,7 +228,8 @@ class DefaultDownloadOrchestrator(
             )
         }
 
-        downloader.download(spec.asset.downloadUrl, scopedName).collect { progress ->
+        multiSourceDownloader.download(spec.asset.downloadUrl, scopedName).collect { progress ->
+            slowDownloadDetector.onProgress(progress)
             updateEntry(spec.packageName) {
                 it.copy(
                     progressPercent = progress.percent,
@@ -240,6 +247,26 @@ class DefaultDownloadOrchestrator(
 
         updateEntry(spec.packageName) {
             it.copy(filePath = filePath, progressPercent = 100)
+        }
+
+        // SHA-256 gate sits between download-complete and the install /
+        // park transition: a tampered mirror must not be able to feed
+        // an APK into the installer. Null digest = GitHub didn't expose
+        // one (older assets, non-asset endpoints); log and proceed.
+        val expectedDigest = spec.asset.digest
+        if (expectedDigest != null) {
+            val mismatch = digestVerifier.verify(filePath, expectedDigest)
+            if (mismatch != null) {
+                Logger.w { "Orchestrator: digest mismatch for ${spec.asset.name}: $mismatch" }
+                runCatching { java.io.File(filePath).delete() }
+                markFailed(
+                    spec.packageName,
+                    "Checksum mismatch — file may have been tampered with",
+                )
+                return
+            }
+        } else {
+            Logger.i { "No digest for ${spec.asset.name}, skipping SHA-256 verification" }
         }
 
         // Race-safe read of the *current* install policy. The

@@ -21,4 +21,5 @@ fun AssetNetwork.toDomain(): GithubAsset =
                 )
             },
         downloadCount = downloadCount,
+        digest = digest,
     )

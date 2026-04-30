@@ -45,7 +45,10 @@ import zed.rainxch.tweaks.presentation.feedback.components.FeedbackBottomSheet
 import zed.rainxch.tweaks.presentation.feedback.model.FeedbackChannel
 
 @Composable
-fun TweaksRoot(viewModel: TweaksViewModel = koinViewModel()) {
+fun TweaksRoot(
+    onNavigateToMirrorPicker: () -> Unit,
+    viewModel: TweaksViewModel = koinViewModel(),
+) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbarState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
@@ -153,7 +156,12 @@ fun TweaksRoot(viewModel: TweaksViewModel = koinViewModel()) {
 
     TweaksScreen(
         state = state,
-        onAction = viewModel::onAction,
+        onAction = { action ->
+            when (action) {
+                TweaksAction.OnMirrorPickerClick -> onNavigateToMirrorPicker()
+                else -> viewModel.onAction(action)
+            }
+        },
         snackbarState = snackbarState,
     )
 

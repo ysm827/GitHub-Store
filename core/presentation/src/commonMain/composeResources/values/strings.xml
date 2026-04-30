@@ -117,7 +117,7 @@
     <!-- Sections -->
     <string name="section_appearance">APPEARANCE</string>
     <string name="section_language">LANGUAGE</string>
-    <string name="language_intro">Override the app\'s UI language.</string>
+    <string name="language_intro">Override the app's UI language.</string>
     <string name="language_picker_title">App language</string>
     <string name="language_picker_description">Changes menus, buttons, and messages throughout the app. Does not change content coming from GitHub.</string>
     <string name="language_follow_system">Follow system</string>
@@ -224,11 +224,11 @@
     <string name="pat_show">Show token</string>
     <string name="pat_hide">Hide token</string>
     <string name="pat_error_empty">Please paste a token.</string>
-    <string name="pat_error_invalid_format">That doesn\'t look like a GitHub token. Tokens start with ghp_ or github_pat_.</string>
+    <string name="pat_error_invalid_format">That doesn't look like a GitHub token. Tokens start with ghp_ or github_pat_.</string>
     <string name="pat_error_bad_credentials">That token is invalid or has been revoked.</string>
-    <string name="pat_error_insufficient_scope">That token doesn\'t have the required permissions.</string>
-    <string name="pat_error_generic">Couldn\'t save token. Please try again.</string>
-    <string name="releases_load_failed">Couldn\'t load releases</string>
+    <string name="pat_error_insufficient_scope">That token doesn't have the required permissions.</string>
+    <string name="pat_error_generic">Couldn't save token. Please try again.</string>
+    <string name="releases_load_failed">Couldn't load releases</string>
     <string name="releases_load_failed_description">Check your connection and try again.</string>
     <string name="no_releases_published">No releases published yet</string>
     <string name="loading_releases">Loading releases…</string>
@@ -467,8 +467,8 @@
     <string name="action_switch_to_stable">Switch to stable %1$s</string>
     <string name="stalled_project_warning_months">No stable release in %1$d months</string>
     <string name="stalled_project_warning_days">No stable release in %1$d days</string>
-    <string name="stalled_project_warning_description">Active pre-releases but the project hasn\'t shipped a stable build in a while. Betas may not converge to a stable release.</string>
-    <string name="merged_whats_changed_title">What\'s changed since %1$s</string>
+    <string name="stalled_project_warning_description">Active pre-releases but the project hasn't shipped a stable build in a while. Betas may not converge to a stable release.</string>
+    <string name="merged_whats_changed_title">What's changed since %1$s</string>
     <string name="merged_release_heading">— %1$s —</string>
     <string name="no_version_selected">No version</string>
     <string name="versions_title">Versions</string>
@@ -799,13 +799,13 @@
     <string name="external_import_completion_action_view_all">View all</string>
     <string name="external_import_empty_all_matched">All matched.\nNothing to link.</string>
     <string name="external_import_empty_done">Done</string>
-    <string name="external_import_empty_no_apps_title">Couldn\'t find any GitHub apps on this device.</string>
-    <string name="external_import_empty_no_apps_body">This means either everything was installed via a different store, or we don\'t have visibility into what\'s installed.</string>
+    <string name="external_import_empty_no_apps_title">Couldn't find any GitHub apps on this device.</string>
+    <string name="external_import_empty_no_apps_body">This means either everything was installed via a different store, or we don't have visibility into what's installed.</string>
     <string name="external_import_empty_grant_permission">Grant permission</string>
     <string name="external_import_empty_ok">OK</string>
     <string name="external_import_permission_title">Find your GitHub apps</string>
     <!-- Three paragraphs joined with \n\n so a single string carries the full body -->
-    <string name="external_import_permission_body">We can scan your installed apps and match them to GitHub releases — so updates and detection just work.\n\nTo do that, we need to see which apps you have. Without permission we can only see about 5 apps; with it, we can see all of them.\n\nWe never send the list of your apps anywhere without your permission. The match runs on your device. The optional backend lookup sends only the package name and app label, and when available the signing fingerprint, install source, and any GitHub-repo hint declared in the app\'s manifest — never a full list of what\'s installed.</string>
+    <string name="external_import_permission_body">We can scan your installed apps and match them to GitHub releases — so updates and detection just work.\n\nTo do that, we need to see which apps you have. Without permission we can only see about 5 apps; with it, we can see all of them.\n\nWe never send the list of your apps anywhere without your permission. The match runs on your device. The optional backend lookup sends only the package name and app label, and when available the signing fingerprint, install source, and any GitHub-repo hint declared in the app's manifest — never a full list of what's installed.</string>
     <string name="external_import_permission_continue">Continue</string>
     <string name="external_import_permission_not_now">Not now</string>
     <plurals name="external_import_proposal_banner_headline">
@@ -817,8 +817,8 @@
     <string name="external_import_proposal_banner_dismiss">Dismiss</string>
     <string name="external_import_match_confidence_a11y">Match confidence: %1$d percent</string>
     <string name="external_import_match_confidence_chip">%1$d%%</string>
-    <string name="external_import_error_link_failed">Couldn\'t link this app — try again.</string>
-    <string name="external_import_error_link_network">Couldn\'t reach GitHub. Try again later.</string>
+    <string name="external_import_error_link_failed">Couldn't link this app — try again.</string>
+    <string name="external_import_error_link_network">Couldn't reach GitHub. Try again later.</string>
     <string name="external_import_error_scan_failed_default">Scan failed</string>
     <string name="external_import_installer_obtainium">Obtainium</string>
     <string name="external_import_installer_fdroid">F-Droid</string>
@@ -830,7 +830,7 @@
     <string name="external_import_undo_linked">Linked %1$s.</string>
     <string name="external_import_undo_skipped">Skipped %1$s.</string>
     <string name="external_import_undo_action">Undo</string>
-    <string name="external_import_undo_failed">Couldn\'t undo — try again.</string>
+    <string name="external_import_undo_failed">Couldn't undo — try again.</string>
     <string name="external_import_card_action_more">More matches</string>
     <string name="external_import_card_action_less">Hide matches</string>
     <plurals name="external_import_list_remaining">
@@ -841,7 +841,7 @@
         <item quantity="one">Linked %1$d app automatically</item>
         <item quantity="other">Linked %1$d apps automatically</item>
     </plurals>
-    <string name="external_import_auto_summary_body">We recognized them with high confidence. You can undo individual matches from each app\'s details, or undo all now.</string>
+    <string name="external_import_auto_summary_body">We recognized them with high confidence. You can undo individual matches from each app's details, or undo all now.</string>
     <plurals name="external_import_auto_summary_review_hint">
         <item quantity="one">%1$d more needs your input.</item>
         <item quantity="other">%1$d more need your input.</item>
@@ -849,7 +849,7 @@
     <string name="external_import_auto_summary_continue">Continue</string>
     <string name="external_import_auto_summary_undo_all">Undo all</string>
     <string name="external_import_auto_summary_more_count">+%1$d more</string>
-    <string name="external_import_list_add_manually">Don\'t see your app? Add manually</string>
+    <string name="external_import_list_add_manually">Don't see your app? Add manually</string>
     <string name="external_import_empty_add_manually">Add an app from another store</string>
     <string name="external_import_rescan_menu">Scan for GitHub apps</string>
 
@@ -857,10 +857,10 @@
     <string name="details_unlink_external_app_menu">Unlink from this repo</string>
     <string name="details_unlink_external_app_more_options">More options</string>
     <string name="details_unlink_external_app_dialog_title">Unlink this app?</string>
-    <string name="details_unlink_external_app_dialog_body">We\'ll stop tracking %1$s as installed from this repo. The app stays on your device — only the link is removed.</string>
+    <string name="details_unlink_external_app_dialog_body">We'll stop tracking %1$s as installed from this repo. The app stays on your device — only the link is removed.</string>
     <string name="details_unlink_external_app_dialog_confirm">Unlink</string>
-    <string name="details_unlink_external_app_success">Unlinked. We\'ll re-suggest a match next scan.</string>
-    <string name="details_unlink_external_app_failure">Couldn\'t unlink — try again.</string>
+    <string name="details_unlink_external_app_success">Unlinked. We'll re-suggest a match next scan.</string>
+    <string name="details_unlink_external_app_failure">Couldn't unlink — try again.</string>
 
     <!-- Tweaks feature - Feedback -->
     <string name="feedback_send">Send feedback</string>
@@ -904,5 +904,51 @@
     <string name="feedback_send_via_github">Open as GitHub Issue</string>
     <string name="feedback_send_success_email">Thanks — opening your mail client.</string>
     <string name="feedback_send_success_github">Thanks — opening your browser.</string>
-    <string name="feedback_send_error">Couldn\'t open feedback channel: %1$s</string>
+    <string name="feedback_send_error">Couldn't open feedback channel: %1$s</string>
+
+    <!-- Tweaks feature - Mirror -->
+    <string name="mirror_tweaks_entry_label">Download Mirror</string>
+    <string name="mirror_picker_title">Download Mirror</string>
+    <string name="mirror_picker_description">Used for downloading release assets. GitHub API calls always go direct. Most users should leave this on Direct GitHub.</string>
+
+    <!-- Mirror - Sections -->
+    <string name="mirror_section_official">Official</string>
+    <string name="mirror_section_community">Community</string>
+
+    <!-- Mirror - Statuses -->
+    <string name="mirror_status_ok">%1$dms</string>
+    <string name="mirror_status_degraded">%1$dms</string>
+    <string name="mirror_status_down">(down)</string>
+    <string name="mirror_status_unknown">?</string>
+
+    <!-- Mirror - Custom -->
+    <string name="mirror_custom_label">Custom mirror…</string>
+    <string name="mirror_custom_dialog_title">Custom mirror</string>
+    <string name="mirror_custom_dialog_hint">https://your-mirror.example/{url}</string>
+    <string name="mirror_custom_validation_https">Template must start with https://</string>
+    <string name="mirror_custom_validation_template">Template must contain {url} exactly once</string>
+    <string name="mirror_custom_save">Save</string>
+
+    <!-- Mirror - Test connection -->
+    <string name="mirror_test_button">Test selected</string>
+    <string name="mirror_test_in_progress">Testing…</string>
+    <string name="mirror_test_success">Reached in %1$dms</string>
+    <string name="mirror_test_http_error">Mirror returned %1$d</string>
+    <string name="mirror_test_timeout">Timed out after 5s</string>
+    <string name="mirror_test_dns_fail">Could not resolve host</string>
+    <string name="mirror_test_other">Failed: %1$s</string>
+
+    <!-- Mirror - Footer hint -->
+    <string name="mirror_deploy_your_own_hint">All mirrors broken? You can host your own in 5 minutes — see docs.</string>
+
+    <!-- Mirror - Removed notice + verification -->
+    <string name="mirror_removed_toast">%1$s is no longer available, switched to Direct GitHub.</string>
+    <string name="mirror_digest_mismatch_error">Checksum mismatch — file may have been tampered with</string>
+
+    <!-- Mirror - Auto-suggest -->
+    <string name="mirror_auto_suggest_title">Try a faster mirror?</string>
+    <string name="mirror_auto_suggest_body">Some users on slow networks have better luck with a community proxy.</string>
+    <string name="mirror_auto_suggest_pick_one">Pick one</string>
+    <string name="mirror_auto_suggest_maybe_later">Maybe later</string>
+    <string name="mirror_auto_suggest_dont_ask_again">Don't ask again</string>
 </resources>

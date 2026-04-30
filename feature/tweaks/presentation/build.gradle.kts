@@ -9,13 +9,14 @@ kotlin {
                 implementation(libs.kotlin.stdlib)
 
                 implementation(projects.core.domain)
+                implementation(projects.core.data)
                 implementation(projects.core.presentation)
                 implementation(projects.feature.profile.domain)
 
                 implementation(libs.androidx.compose.ui.tooling.preview)
                 implementation(libs.jetbrains.compose.components.resources)
 
-                implementation(libs.ktor.client.core)
+                api(libs.ktor.client.core)
 
                 implementation(libs.liquid)
             }

@@ -3,6 +3,7 @@ package zed.rainxch.core.data.network
 import io.ktor.client.*
 import io.ktor.client.call.body
 import io.ktor.client.plugins.*
+import io.ktor.client.plugins.HttpRedirect
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.request.header
 import io.ktor.client.statement.HttpResponse
@@ -77,6 +78,10 @@ fun createGitHubHttpClient(
             exponentialDelay()
         }
 
+        install(HttpRedirect) {
+            checkHttpMethod = false
+        }
+
         expectSuccess = false
 
         defaultRequest {
@@ -95,7 +100,7 @@ fun createGitHubHttpClient(
                 header(HttpHeaders.Authorization, "Bearer $token")
             }
         }
-    }
+    }.also { it.installMirrorRewrite() }
 }
 
 suspend inline fun <reified T> HttpClient.executeRequest(crossinline block: suspend HttpClient.() -> HttpResponse): Result<T> =

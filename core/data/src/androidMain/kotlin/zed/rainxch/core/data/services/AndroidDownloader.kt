@@ -87,7 +87,11 @@ class AndroidDownloader(
     override fun download(
         url: String,
         suggestedFileName: String?,
+        bypassMirror: Boolean,
     ): Flow<DownloadProgress> =
+        // bypassMirror is a no-op here: this downloader uses OkHttp directly,
+        // not Ktor, so it never traverses MirrorRewriteInterceptor. The caller
+        // (MultiSourceDownloader) already passes the resolved direct/mirror URL.
         flow {
             val client = buildClient()
 

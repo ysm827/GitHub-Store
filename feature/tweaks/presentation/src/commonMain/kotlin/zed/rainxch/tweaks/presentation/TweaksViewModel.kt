@@ -651,6 +651,10 @@ class TweaksViewModel(
                 )
             }
 
+            TweaksAction.OnMirrorPickerClick -> {
+                // Handled in composable
+            }
+
             TweaksAction.OnFeedbackClick ->
                 _state.update { it.copy(isFeedbackSheetVisible = true) }
             TweaksAction.OnFeedbackDismiss ->

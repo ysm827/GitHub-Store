@@ -36,6 +36,7 @@ import zed.rainxch.core.data.dto.EventRequest
 import zed.rainxch.core.data.dto.ExternalMatchRequest
 import zed.rainxch.core.data.dto.ExternalMatchResponse
 import zed.rainxch.core.data.dto.GithubReadmeResponseDto
+import zed.rainxch.core.data.dto.MirrorListResponse
 import zed.rainxch.core.data.dto.ReleaseNetwork
 import zed.rainxch.core.data.dto.SigningFingerprintSeedResponse
 import zed.rainxch.core.data.dto.UserProfileNetwork
@@ -278,6 +279,16 @@ class BackendApiClient(
                     Result.failure(RateLimitedException())
                 else ->
                     Result.failure(BackendException(response.status.value))
+            }
+        }
+
+    suspend fun getMirrorList(): Result<MirrorListResponse> =
+        safeCall {
+            val response = httpClient.get("mirrors/list")
+            if (response.status.isSuccess()) {
+                Result.success(response.body())
+            } else {
+                Result.failure(BackendException(response.status.value))
             }
         }
 
