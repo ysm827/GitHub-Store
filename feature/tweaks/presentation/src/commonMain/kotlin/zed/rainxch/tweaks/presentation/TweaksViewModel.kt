@@ -651,6 +651,10 @@ class TweaksViewModel(
                 )
             }
 
+            TweaksAction.OnMirrorPickerClick -> {
+                // Handled in composable
+            }
+
             is TweaksAction.OnTelemetryToggled -> {
                 viewModelScope.launch {
                     tweaksRepository.setTelemetryEnabled(action.enabled)

@@ -308,7 +308,11 @@ fun AppNavigation(
                 }
 
                 composable<GithubStoreGraph.TweaksScreen> {
-                    TweaksRoot()
+                    TweaksRoot(
+                        onNavigateToMirrorPicker = {
+                            navController.navigate(GithubStoreGraph.MirrorPickerScreen)
+                        },
+                    )
                 }
 
                 composable<GithubStoreGraph.AppsScreen> { backStackEntry ->
