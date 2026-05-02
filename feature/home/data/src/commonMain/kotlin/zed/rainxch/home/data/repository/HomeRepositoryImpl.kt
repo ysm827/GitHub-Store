@@ -545,7 +545,9 @@ class HomeRepositoryImpl(
         return when {
             topics.isEmpty() -> baseQuery
             topics.size == 1 -> "$baseQuery topic:${topics.first()}"
-            else -> "$baseQuery (" + topics.joinToString(separator = " OR ") { "topic:$it" } + ")"
+            // Classic REST search doesn't support parenthesized qualifier grouping.
+            // Repeat the full base query per topic joined with OR.
+            else -> topics.joinToString(separator = " OR ") { "($baseQuery topic:$it)" }
         }
     }
 
