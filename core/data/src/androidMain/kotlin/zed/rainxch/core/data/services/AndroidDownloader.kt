@@ -21,6 +21,9 @@ import java.net.Authenticator
 import java.net.InetSocketAddress
 import java.net.PasswordAuthentication
 import java.net.Proxy
+import java.nio.file.AtomicMoveNotSupportedException
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
@@ -29,7 +32,7 @@ class AndroidDownloader(
     private val files: FileLocationsProvider,
 ) : Downloader {
     private val activeDownloads = ConcurrentHashMap<String, Call>()
-    private val activeFileNames = ConcurrentHashMap<String, String>()
+    private val idsByName = ConcurrentHashMap<String, MutableSet<String>>()
 
     private fun buildClient(): OkHttpClient {
         Authenticator.setDefault(null)
@@ -111,17 +114,16 @@ class AndroidDownloader(
                 "Invalid file name: $rawName"
             }
 
-            check(!activeFileNames.containsKey(safeName)) {
-                "A download for '$safeName' is already in progress"
-            }
-
             val downloadId = UUID.randomUUID().toString()
 
             val destination = File(dir, safeName)
-            if (destination.exists()) {
-                Logger.d { "Deleting existing file before download: ${destination.absolutePath}" }
-                destination.delete()
-            }
+            // Each attempt writes to its own temp file so MultiSourceDownloader's
+            // direct/mirror race cannot have two jobs trampling the same path
+            // (see issue: "File not ready after download" with custom mirror).
+            // Temp lives in the same dir so the final rename stays on one FS
+            // and ATOMIC_MOVE works.
+            val tempFile = File(dir, "$safeName.part-$downloadId")
+            if (tempFile.exists()) tempFile.delete()
 
             Logger.d { "Starting download: $url (id=$downloadId)" }
 
@@ -129,7 +131,7 @@ class AndroidDownloader(
             val call = client.newCall(request)
 
             activeDownloads[downloadId] = call
-            activeFileNames[safeName] = downloadId
+            idsByName.computeIfAbsent(safeName) { ConcurrentHashMap.newKeySet() }.add(downloadId)
 
             try {
                 call.execute().use { response ->
@@ -142,7 +144,7 @@ class AndroidDownloader(
                     val total = if (contentLength > 0) contentLength else null
 
                     body.byteStream().use { input ->
-                        destination.outputStream().use { output ->
+                        tempFile.outputStream().use { output ->
                             val buffer = ByteArray(8192)
                             var downloaded: Long = 0
                             var bytesRead: Int
@@ -156,25 +158,48 @@ class AndroidDownloader(
                         }
                     }
 
-                    if (destination.exists() && destination.length() > 0) {
-                        Logger.d { "Download complete: ${destination.absolutePath}" }
-                        val finalDownloaded = destination.length()
-                        val finalPercent =
-                            if (total != null) ((finalDownloaded * 100L) / total).toInt() else 100
-                        emit(DownloadProgress(finalDownloaded, total, finalPercent))
-                    } else {
-                        throw IllegalStateException("File not ready after download: ${destination.absolutePath}")
+                    if (!tempFile.exists() || tempFile.length() <= 0) {
+                        throw IllegalStateException(
+                            "Download produced empty file: ${tempFile.absolutePath} (contentLength=$contentLength)",
+                        )
                     }
+
+                    moveAtomic(tempFile, destination)
+
+                    Logger.d { "Download complete: ${destination.absolutePath}" }
+                    val finalDownloaded = destination.length()
+                    val finalPercent =
+                        if (total != null) ((finalDownloaded * 100L) / total).toInt() else 100
+                    emit(DownloadProgress(finalDownloaded, total, finalPercent))
                 }
             } catch (e: Exception) {
-                destination.delete()
+                tempFile.delete()
                 Logger.e(e) { "Download failed" }
                 throw e
             } finally {
                 activeDownloads.remove(downloadId)
-                activeFileNames.remove(safeName)
+                idsByName.computeIfPresent(safeName) { _, set ->
+                    set.remove(downloadId)
+                    if (set.isEmpty()) null else set
+                }
             }
         }.flowOn(Dispatchers.IO)
+
+    private fun moveAtomic(source: File, target: File) {
+        try {
+            Files.move(
+                source.toPath(),
+                target.toPath(),
+                StandardCopyOption.REPLACE_EXISTING,
+                StandardCopyOption.ATOMIC_MOVE,
+            )
+        } catch (_: AtomicMoveNotSupportedException) {
+            // Fallback for filesystems without atomic-move support — still
+            // safer than writing directly to target because the partial bytes
+            // were never visible at `target` until this step.
+            Files.move(source.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING)
+        }
+    }
 
     override suspend fun saveToFile(
         url: String,
@@ -219,28 +244,24 @@ class AndroidDownloader(
 
     override suspend fun cancelDownload(fileName: String): Boolean =
         withContext(Dispatchers.IO) {
+            // Cancel every in-flight download for this fileName — MultiSource
+            // races run direct + mirror in parallel under the same logical
+            // name, so a single-id lookup would leave one of them running.
+            val ids = idsByName.remove(fileName)?.toList().orEmpty()
+            if (ids.isEmpty()) return@withContext false
+
             var cancelled = false
-
-            val downloadId = activeFileNames[fileName]
-            if (downloadId != null) {
-                activeDownloads[downloadId]?.let { call: Call ->
-                    if (!call.isCanceled()) {
-                        call.cancel()
-                        cancelled = true
-                    }
-                    activeDownloads.remove(downloadId)
-                }
-                activeFileNames.remove(fileName)
-
-                // Only delete the file if we cancelled an active download (incomplete file)
-                if (cancelled) {
-                    val file = File(files.appDownloadsDir(), fileName)
-                    if (file.exists()) {
-                        file.delete()
-                    }
+            for (id in ids) {
+                val call = activeDownloads.remove(id) ?: continue
+                if (!call.isCanceled()) {
+                    call.cancel()
+                    cancelled = true
                 }
             }
-
+            // No destination delete: the flow's catch handles its own temp
+            // file. The final destination is only written via atomic-rename
+            // on success, so it's either a prior valid download (keep) or
+            // doesn't exist yet.
             cancelled
         }
 }
