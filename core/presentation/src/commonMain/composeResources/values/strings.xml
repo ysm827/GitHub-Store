@@ -951,4 +951,22 @@
     <string name="mirror_auto_suggest_pick_one">Pick one</string>
     <string name="mirror_auto_suggest_maybe_later">Maybe later</string>
     <string name="mirror_auto_suggest_dont_ask_again">Don't ask again</string>
+
+    <!-- Apps screen sections (issue #463) -->
+    <string name="apps_section_updates_available">Updates available</string>
+    <string name="apps_section_up_to_date">Up to date</string>
+    <string name="apps_section_count_suffix">· %1$d</string>
+    <string name="apps_section_expand">Expand section</string>
+    <string name="apps_section_collapse">Collapse section</string>
+    <string name="apps_section_state_expanded">expanded</string>
+    <string name="apps_section_state_collapsed">collapsed</string>
+    <string name="apps_section_header_a11y_collapsible">%1$s, %2$d, %3$s</string>
+    <string name="apps_section_header_a11y_static">%1$s, %2$d</string>
+    <string name="apps_compact_more_actions">More actions for %1$s</string>
+    <string name="apps_compact_status_filter_active">monorepo filter active</string>
+    <string name="apps_compact_status_variant_pinned">variant pinned</string>
+    <string name="apps_compact_status_pre_release_on">pre-release on</string>
+    <string name="apps_compact_status_variant_stale">variant stale, action needed</string>
+    <string name="apps_compact_status_pending_install">pending install</string>
+    <string name="apps_compact_status_ready_to_install">ready to install</string>
 </resources>

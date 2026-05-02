@@ -27,6 +27,12 @@ data class AppsState(
     val lastCheckedTimestamp: Long? = null,
     val isRefreshing: Boolean = false,
     val isLiquidGlassEnabled: Boolean = true,
+    /**
+     * Whether the "Up to date" section is expanded. Default expanded so
+     * users with no updates pending still see their apps. Collapses
+     * independently of the (always-expanded) "Updates available" section.
+     */
+    val isUpToDateSectionExpanded: Boolean = true,
     // Link app to repo
     val showLinkSheet: Boolean = false,
     val linkStep: LinkStep = LinkStep.PickApp,

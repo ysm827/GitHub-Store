@@ -293,6 +293,10 @@ class AppsViewModel(
                 refresh()
             }
 
+            AppsAction.OnToggleUpToDateSection -> {
+                _state.update { it.copy(isUpToDateSectionExpanded = !it.isUpToDateSectionExpanded) }
+            }
+
             is AppsAction.OnNavigateToRepo -> {
                 viewModelScope.launch {
                     _events.send(AppsEvent.NavigateToRepo(action.repoId))
@@ -1296,6 +1300,10 @@ class AppsViewModel(
         packageName: String,
         progress: Int?,
     ) {
+        // Download progress is purely a per-row visual update; it doesn't
+        // affect sort order or search match. Avoid re-running the full
+        // filter+sort pass on every progress tick (which at 50+ apps with
+        // a download in flight ran ~100×/sec). Map both lists in place.
         _state.update { currentState ->
             currentState.copy(
                 apps =
@@ -1307,10 +1315,17 @@ class AppsViewModel(
                                 appItem
                             }
                         }.toImmutableList(),
+                filteredApps =
+                    currentState.filteredApps
+                        .map { appItem ->
+                            if (appItem.installedApp.packageName == packageName) {
+                                appItem.copy(downloadProgress = progress)
+                            } else {
+                                appItem
+                            }
+                        }.toImmutableList(),
             )
         }
-
-        filterApps()
     }
 
     private suspend fun markPendingUpdate(app: InstalledApp) {

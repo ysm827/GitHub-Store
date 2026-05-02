@@ -89,6 +89,8 @@ import kotlin.time.Instant
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import zed.rainxch.apps.presentation.components.AdvancedAppSettingsBottomSheet
+import zed.rainxch.apps.presentation.components.AppsSectionHeader
+import zed.rainxch.apps.presentation.components.CompactAppRow
 import zed.rainxch.apps.presentation.components.InstalledAppIcon
 import zed.rainxch.apps.presentation.components.LinkAppBottomSheet
 import zed.rainxch.apps.presentation.components.VariantPickerDialog
@@ -108,6 +110,8 @@ import zed.rainxch.core.presentation.utils.arrowKeyScroll
 import zed.rainxch.githubstore.core.presentation.res.Res
 import zed.rainxch.githubstore.core.presentation.res.add_by_link
 import zed.rainxch.githubstore.core.presentation.res.advanced_settings_open
+import zed.rainxch.githubstore.core.presentation.res.apps_section_up_to_date
+import zed.rainxch.githubstore.core.presentation.res.apps_section_updates_available
 import zed.rainxch.githubstore.core.presentation.res.install
 import zed.rainxch.githubstore.core.presentation.res.ready_to_install
 import zed.rainxch.githubstore.core.presentation.res.variant_label_inline
@@ -529,6 +533,15 @@ fun AppsScreen(
                     else -> {
                         val listState = rememberLazyListState()
                         val isScrollbarEnabled = LocalScrollbarEnabled.current
+
+                        // Split filteredApps into the "Updates available" group (rich
+                        // rows) and the "Up to date" group (compact rows) — issue #463.
+                        // Sort order is already applied by the ViewModel.
+                        val updatesGroup =
+                            state.filteredApps.filter { it.installedApp.isUpdateAvailable }
+                        val idleGroup =
+                            state.filteredApps.filter { !it.installedApp.isUpdateAvailable }
+
                         ScrollbarContainer(
                             listState = listState,
                             enabled = isScrollbarEnabled,
@@ -537,56 +550,127 @@ fun AppsScreen(
                             LazyColumn(
                                 state = listState,
                                 modifier = Modifier.fillMaxSize().arrowKeyScroll(listState),
-                                contentPadding = PaddingValues(16.dp),
-                                verticalArrangement = Arrangement.spacedBy(12.dp),
+                                contentPadding = PaddingValues(horizontal = 0.dp, vertical = 8.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
                             ) {
                                 if (state.showImportProposalBanner) {
                                     item(key = "external-import-banner") {
-                                        ImportProposalBanner(
-                                            pendingCount = state.pendingExternalImportCount,
-                                            onReview = { onAction(AppsAction.OnImportProposalReview) },
-                                            onDismiss = { onAction(AppsAction.OnImportProposalDismiss) },
-                                        )
+                                        Box(modifier = Modifier.padding(horizontal = 16.dp)) {
+                                            ImportProposalBanner(
+                                                pendingCount = state.pendingExternalImportCount,
+                                                onReview = { onAction(AppsAction.OnImportProposalReview) },
+                                                onDismiss = { onAction(AppsAction.OnImportProposalDismiss) },
+                                            )
+                                        }
                                     }
                                 }
-                                items(
-                                    items = state.filteredApps,
-                                    key = { it.installedApp.packageName },
-                                ) { appItem ->
-                                    AppItemCard(
-                                        appItem = appItem,
-                                        onOpenClick = { onAction(AppsAction.OnOpenApp(appItem.installedApp)) },
-                                        onUpdateClick = { onAction(AppsAction.OnUpdateApp(appItem.installedApp)) },
-                                        onCancelClick = { onAction(AppsAction.OnCancelUpdate(appItem.installedApp.packageName)) },
-                                        onUninstallClick = { onAction(AppsAction.OnUninstallApp(appItem.installedApp)) },
-                                        onRepoClick = { onAction(AppsAction.OnNavigateToRepo(appItem.installedApp.repoId)) },
-                                        onTogglePreReleases = { enabled ->
-                                            onAction(AppsAction.OnTogglePreReleases(appItem.installedApp.packageName, enabled))
-                                        },
-                                        onAdvancedSettingsClick = {
-                                            onAction(AppsAction.OnOpenAdvancedSettings(appItem.installedApp))
-                                        },
-                                        onPickVariantClick = {
-                                            onAction(
-                                                AppsAction.OnOpenVariantPicker(
-                                                    app = appItem.installedApp,
-                                                    resumeUpdateAfterPick = false,
-                                                ),
+
+                                if (updatesGroup.isNotEmpty()) {
+                                    item(key = "header-updates-available") {
+                                        AppsSectionHeader(
+                                            title = stringResource(Res.string.apps_section_updates_available),
+                                            count = updatesGroup.size,
+                                            isExpanded = true,
+                                            collapsible = false,
+                                            onToggle = {},
+                                        )
+                                    }
+                                    items(
+                                        items = updatesGroup,
+                                        key = { "rich-${it.installedApp.packageName}" },
+                                    ) { appItem ->
+                                        Box(modifier = Modifier.padding(horizontal = 16.dp)) {
+                                            AppItemCard(
+                                                appItem = appItem,
+                                                onOpenClick = { onAction(AppsAction.OnOpenApp(appItem.installedApp)) },
+                                                onUpdateClick = { onAction(AppsAction.OnUpdateApp(appItem.installedApp)) },
+                                                onCancelClick = { onAction(AppsAction.OnCancelUpdate(appItem.installedApp.packageName)) },
+                                                onUninstallClick = { onAction(AppsAction.OnUninstallApp(appItem.installedApp)) },
+                                                onRepoClick = { onAction(AppsAction.OnNavigateToRepo(appItem.installedApp.repoId)) },
+                                                onTogglePreReleases = { enabled ->
+                                                    onAction(AppsAction.OnTogglePreReleases(appItem.installedApp.packageName, enabled))
+                                                },
+                                                onAdvancedSettingsClick = {
+                                                    onAction(AppsAction.OnOpenAdvancedSettings(appItem.installedApp))
+                                                },
+                                                onPickVariantClick = {
+                                                    onAction(
+                                                        AppsAction.OnOpenVariantPicker(
+                                                            app = appItem.installedApp,
+                                                            resumeUpdateAfterPick = false,
+                                                        ),
+                                                    )
+                                                },
+                                                onInstallPendingClick = {
+                                                    onAction(AppsAction.OnInstallPendingApp(appItem.installedApp))
+                                                },
+                                                modifier =
+                                                    Modifier
+                                                        .then(
+                                                            if (state.isLiquidGlassEnabled) {
+                                                                Modifier.liquefiable(liquidState)
+                                                            } else {
+                                                                Modifier
+                                                            },
+                                                        ),
                                             )
-                                        },
-                                        onInstallPendingClick = {
-                                            onAction(AppsAction.OnInstallPendingApp(appItem.installedApp))
-                                        },
-                                        modifier =
-                                            Modifier
-                                                .then(
-                                                    if (state.isLiquidGlassEnabled) {
-                                                        Modifier.liquefiable(liquidState)
-                                                    } else {
-                                                        Modifier
+                                        }
+                                    }
+                                }
+
+                                if (idleGroup.isNotEmpty()) {
+                                    item(key = "header-up-to-date") {
+                                        AppsSectionHeader(
+                                            title = stringResource(Res.string.apps_section_up_to_date),
+                                            count = idleGroup.size,
+                                            isExpanded = state.isUpToDateSectionExpanded,
+                                            collapsible = true,
+                                            onToggle = {
+                                                onAction(AppsAction.OnToggleUpToDateSection)
+                                            },
+                                        )
+                                    }
+                                    if (state.isUpToDateSectionExpanded) {
+                                        items(
+                                            items = idleGroup,
+                                            key = { "compact-${it.installedApp.packageName}" },
+                                        ) { appItem ->
+                                            Box(modifier = Modifier.padding(horizontal = 8.dp)) {
+                                                CompactAppRow(
+                                                    appItem = appItem,
+                                                    onOpenClick = { onAction(AppsAction.OnOpenApp(appItem.installedApp)) },
+                                                    onInstallPendingClick = {
+                                                        onAction(AppsAction.OnInstallPendingApp(appItem.installedApp))
                                                     },
-                                                ),
-                                    )
+                                                    onAdvancedSettingsClick = {
+                                                        onAction(AppsAction.OnOpenAdvancedSettings(appItem.installedApp))
+                                                    },
+                                                    onPickVariantClick = {
+                                                        onAction(
+                                                            AppsAction.OnOpenVariantPicker(
+                                                                app = appItem.installedApp,
+                                                                resumeUpdateAfterPick = false,
+                                                            ),
+                                                        )
+                                                    },
+                                                    onUninstallClick = {
+                                                        onAction(AppsAction.OnUninstallApp(appItem.installedApp))
+                                                    },
+                                                    onTogglePreReleases = { enabled ->
+                                                        onAction(
+                                                            AppsAction.OnTogglePreReleases(
+                                                                appItem.installedApp.packageName,
+                                                                enabled,
+                                                            ),
+                                                        )
+                                                    },
+                                                    onRowClick = {
+                                                        onAction(AppsAction.OnNavigateToRepo(appItem.installedApp.repoId))
+                                                    },
+                                                )
+                                            }
+                                        }
+                                    }
                                 }
 
                                 item {

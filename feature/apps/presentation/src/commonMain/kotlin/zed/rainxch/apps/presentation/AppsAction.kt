@@ -37,6 +37,8 @@ sealed interface AppsAction {
 
     data object OnRefresh : AppsAction
 
+    data object OnToggleUpToDateSection : AppsAction
+
     data class OnNavigateToRepo(
         val repoId: Long,
     ) : AppsAction
