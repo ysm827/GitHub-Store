@@ -92,8 +92,7 @@ fun CompactAppRow(
 ) {
     val app = appItem.installedApp
     val isBusy =
-        app.isPendingInstall ||
-            appItem.updateState is UpdateState.Downloading ||
+        appItem.updateState is UpdateState.Downloading ||
             appItem.updateState is UpdateState.Installing ||
             appItem.updateState is UpdateState.CheckingUpdate
 
