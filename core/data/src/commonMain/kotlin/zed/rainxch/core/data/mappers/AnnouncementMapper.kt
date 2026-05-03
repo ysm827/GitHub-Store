@@ -1,5 +1,6 @@
 package zed.rainxch.core.data.mappers
 
+import kotlin.time.Instant
 import zed.rainxch.core.data.dto.AnnouncementDto
 import zed.rainxch.core.domain.model.Announcement
 import zed.rainxch.core.domain.model.AnnouncementCategory
@@ -9,7 +10,10 @@ import zed.rainxch.core.domain.model.AnnouncementSeverity
 fun AnnouncementDto.toDomain(
     fullLocale: String,
     primaryLocale: String,
-): Announcement {
+): Announcement? {
+    val publishedInstant = publishedAt.parseInstantOrNull() ?: return null
+    val expiresInstant = expiresAt?.parseInstantOrNull()
+
     val variant = i18n[fullLocale] ?: i18n[primaryLocale]
     val resolvedTitle = variant?.title?.takeIf { it.isNotBlank() } ?: title
     val resolvedBody = variant?.body?.takeIf { it.isNotBlank() } ?: body
@@ -18,8 +22,8 @@ fun AnnouncementDto.toDomain(
 
     return Announcement(
         id = id,
-        publishedAt = publishedAt,
-        expiresAt = expiresAt,
+        publishedAt = publishedInstant,
+        expiresAt = expiresInstant,
         severity = severity.parseSeverity(),
         category = category.parseCategory(),
         title = resolvedTitle,
@@ -35,6 +39,9 @@ fun AnnouncementDto.toDomain(
         iconHint = iconHint?.parseIconHint(),
     )
 }
+
+private fun String.parseInstantOrNull(): Instant? =
+    runCatching { Instant.parse(this) }.getOrNull()
 
 private fun String.parseSeverity(): AnnouncementSeverity =
     runCatching { AnnouncementSeverity.valueOf(trim().uppercase()) }

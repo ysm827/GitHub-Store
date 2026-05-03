@@ -1,9 +1,11 @@
 package zed.rainxch.core.domain.model
 
+import kotlin.time.Instant
+
 data class Announcement(
     val id: String,
-    val publishedAt: String,
-    val expiresAt: String?,
+    val publishedAt: Instant,
+    val expiresAt: Instant?,
     val severity: AnnouncementSeverity,
     val category: AnnouncementCategory,
     val title: String,
