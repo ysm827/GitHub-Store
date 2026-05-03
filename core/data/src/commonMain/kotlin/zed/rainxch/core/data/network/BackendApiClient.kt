@@ -170,15 +170,6 @@ class BackendApiClient(
         } catch (_: Exception) {
             null
         }
-    // X-GitHub-Token is forwarded on every backend route that does a live
-    // GitHub passthrough (search, search/explore, repo lazy-fetch, releases,
-    // readme, user). Sending the header lets the backend make the upstream
-    // call under the user's own 5000/hr OAuth quota instead of the
-    // anonymous 60/hr-per-IP shared bucket — without it a popular repo's
-    // releases list can poison the backend's negative cache for 15 min on
-    // a single quota burst. DB-only routes (categories, topics, events,
-    // auth/device/*, badge) ignore the header and don't get it.
-
     suspend fun getRepo(owner: String, name: String): Result<BackendRepoResponse> =
         safeCall {
             val token = currentUserGithubToken()
