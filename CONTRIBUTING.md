@@ -306,7 +306,7 @@ You don't normally need to touch this as a contributor; just be aware that landi
 
 ## Security disclosures
 
-**Do not open public issues for security vulnerabilities.** Use [GitHub's private vulnerability reporting](https://github.com/OpenHub-Store/GitHub-Store/security/advisories/new) or email the maintainers directly (see the GitHub profile for contact info).
+**Do not open public issues for security vulnerabilities.** Use [GitHub's private vulnerability reporting](https://github.com/OpenHub-Store/GitHub-Store/security/advisories/new) or email **hello@github-store.org** with the details.
 
 We treat token leaks, install-flow exploits, and signing-bypass paths as critical. Other issues we'll triage on a best-effort basis.
 
@@ -315,6 +315,7 @@ We treat token leaks, install-flow exploits, and signing-bypass paths as critica
 ## Questions
 
 - **Real-time chat:** join the [Discord server](https://discord.github-store.org) — fastest way to get a hand from maintainers and other contributors.
+- **Email:** **hello@github-store.org** for anything that doesn't fit a public channel — sponsorship, partnerships, sensitive coordination.
 - **General questions / discussion:** open a [GitHub Discussion](https://github.com/OpenHub-Store/GitHub-Store/discussions) (if enabled) or a feature-request issue.
 - **Stuck on local setup:** open a draft PR with what you have and ask for help in the description — we'd rather help you finish than have you give up silently.
 - **Sibling repos:** [backend](https://github.com/OpenHub-Store/backend) and [api](https://github.com/OpenHub-Store/api) have their own contributing notes.
