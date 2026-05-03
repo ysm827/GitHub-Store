@@ -10,6 +10,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import zed.rainxch.core.domain.model.AnnouncementCategory
 import zed.rainxch.core.domain.model.AppLanguages
 import zed.rainxch.core.domain.model.AppTheme
 import zed.rainxch.core.domain.model.DiscoveryPlatform
@@ -328,30 +329,20 @@ class TweaksRepositoryImpl(
         }
     }
 
-    override fun getAnnouncementsMutedCategories(): Flow<Set<String>> =
+    override fun getAnnouncementsMutedCategories(): Flow<Set<AnnouncementCategory>> =
         preferences.data.map { prefs ->
-            prefs[ANNOUNCEMENTS_MUTED_CATEGORIES_KEY] ?: emptySet()
+            prefs[ANNOUNCEMENTS_MUTED_CATEGORIES_KEY]
+                ?.mapNotNull { name ->
+                    runCatching { AnnouncementCategory.valueOf(name) }.getOrNull()
+                }
+                ?.toSet()
+                ?: emptySet()
         }
 
-    override suspend fun setAnnouncementCategoryMuted(categoryName: String, muted: Boolean) {
+    override suspend fun setAnnouncementCategoryMuted(category: AnnouncementCategory, muted: Boolean) {
         preferences.edit { prefs ->
             val current = prefs[ANNOUNCEMENTS_MUTED_CATEGORIES_KEY] ?: emptySet()
-            prefs[ANNOUNCEMENTS_MUTED_CATEGORIES_KEY] = if (muted) current + categoryName else current - categoryName
-        }
-    }
-
-    override fun getAnnouncementsCachedPayload(): Flow<String?> =
-        preferences.data.map { prefs ->
-            prefs[ANNOUNCEMENTS_CACHED_PAYLOAD_KEY]
-        }
-
-    override suspend fun setAnnouncementsCachedPayload(payload: String?) {
-        preferences.edit { prefs ->
-            if (payload == null) {
-                prefs.remove(ANNOUNCEMENTS_CACHED_PAYLOAD_KEY)
-            } else {
-                prefs[ANNOUNCEMENTS_CACHED_PAYLOAD_KEY] = payload
-            }
+            prefs[ANNOUNCEMENTS_MUTED_CATEGORIES_KEY] = if (muted) current + category.name else current - category.name
         }
     }
 
@@ -396,7 +387,6 @@ class TweaksRepositoryImpl(
         private val ANNOUNCEMENTS_DISMISSED_IDS_KEY = stringSetPreferencesKey("announcements_dismissed_ids")
         private val ANNOUNCEMENTS_ACKNOWLEDGED_IDS_KEY = stringSetPreferencesKey("announcements_acknowledged_ids")
         private val ANNOUNCEMENTS_MUTED_CATEGORIES_KEY = stringSetPreferencesKey("announcements_muted_categories")
-        private val ANNOUNCEMENTS_CACHED_PAYLOAD_KEY = stringPreferencesKey("announcements_cached_payload")
         private val ANNOUNCEMENTS_LAST_FETCHED_AT_KEY = longPreferencesKey("announcements_last_fetched_at")
     }
 }

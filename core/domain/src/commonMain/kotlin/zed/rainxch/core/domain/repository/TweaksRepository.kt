@@ -1,6 +1,7 @@
 package zed.rainxch.core.domain.repository
 
 import kotlinx.coroutines.flow.Flow
+import zed.rainxch.core.domain.model.AnnouncementCategory
 import zed.rainxch.core.domain.model.AppTheme
 import zed.rainxch.core.domain.model.DiscoveryPlatform
 import zed.rainxch.core.domain.model.FontTheme
@@ -120,13 +121,9 @@ interface TweaksRepository {
 
     suspend fun addAnnouncementAcknowledgedId(id: String)
 
-    fun getAnnouncementsMutedCategories(): Flow<Set<String>>
+    fun getAnnouncementsMutedCategories(): Flow<Set<AnnouncementCategory>>
 
-    suspend fun setAnnouncementCategoryMuted(categoryName: String, muted: Boolean)
-
-    fun getAnnouncementsCachedPayload(): Flow<String?>
-
-    suspend fun setAnnouncementsCachedPayload(payload: String?)
+    suspend fun setAnnouncementCategoryMuted(category: AnnouncementCategory, muted: Boolean)
 
     fun getAnnouncementsLastFetchedAt(): Flow<Long>
 

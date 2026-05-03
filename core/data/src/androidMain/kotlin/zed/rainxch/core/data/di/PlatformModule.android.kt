@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.Preferences
 import kotlinx.coroutines.CoroutineScope
 import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.module
+import zed.rainxch.core.data.local.data_store.createAnnouncementsDataStore
 import zed.rainxch.core.data.local.data_store.createDataStore
 import zed.rainxch.core.data.local.db.AppDatabase
 import zed.rainxch.core.data.local.db.initDatabase
@@ -149,6 +150,10 @@ actual val corePlatformModule =
 
         single<DataStore<Preferences>> {
             createDataStore(androidContext())
+        }
+
+        single<DataStore<Preferences>>(qualifier = org.koin.core.qualifier.named("announcements")) {
+            createAnnouncementsDataStore(androidContext())
         }
 
         // Utils
