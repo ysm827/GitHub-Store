@@ -4,8 +4,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -43,13 +45,8 @@ import zed.rainxch.core.domain.model.AnnouncementSeverity
 import zed.rainxch.githubstore.core.presentation.res.Res
 import zed.rainxch.githubstore.core.presentation.res.announcements_acknowledge
 import zed.rainxch.githubstore.core.presentation.res.announcements_acknowledged
-import zed.rainxch.githubstore.core.presentation.res.announcements_category_news
-import zed.rainxch.githubstore.core.presentation.res.announcements_category_privacy
-import zed.rainxch.githubstore.core.presentation.res.announcements_category_security
-import zed.rainxch.githubstore.core.presentation.res.announcements_category_status
-import zed.rainxch.githubstore.core.presentation.res.announcements_category_survey
-import zed.rainxch.githubstore.core.presentation.res.announcements_dismiss
 import zed.rainxch.githubstore.core.presentation.res.announcements_read_more
+import zed.rainxch.githubstore.core.presentation.res.dismiss
 
 private const val BODY_COLLAPSED_LINES = 4
 
@@ -74,16 +71,15 @@ fun AnnouncementCard(
         color = containerColor,
         modifier = modifier.fillMaxWidth(),
     ) {
-        Row(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(IntrinsicSize.Min),
+        ) {
             Box(
                 modifier = Modifier
                     .width(4.dp)
-                    .fillMaxWidth()
-                    .height(0.dp),
-            )
-            Box(
-                modifier = Modifier
-                    .width(4.dp)
+                    .fillMaxHeight()
                     .background(severityColor),
             )
             Column(
@@ -176,14 +172,20 @@ private fun CategoryChip(category: AnnouncementCategory) {
 @Composable
 private fun ExpandableBody(body: String) {
     var expanded by remember(body) { mutableStateOf(false) }
+    var isOverflowing by remember(body) { mutableStateOf(false) }
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(
             text = body,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface,
             maxLines = if (expanded) Int.MAX_VALUE else BODY_COLLAPSED_LINES,
+            onTextLayout = { layout ->
+                if (!expanded && layout.hasVisualOverflow) {
+                    isOverflowing = true
+                }
+            },
         )
-        if (!expanded && body.length > 280) {
+        if (!expanded && isOverflowing) {
             TextButton(onClick = { expanded = true }) {
                 Text(
                     text = stringResource(Res.string.announcements_read_more),
@@ -226,7 +228,7 @@ private fun ActionRow(
             }
         } else if (announcement.dismissible) {
             TextButton(onClick = onDismissClick) {
-                Text(text = stringResource(Res.string.announcements_dismiss))
+                Text(text = stringResource(Res.string.dismiss))
             }
         }
     }
@@ -256,10 +258,3 @@ private fun severityIcon(severity: AnnouncementSeverity, hint: AnnouncementIconH
     }
 }
 
-private fun categoryLabel(category: AnnouncementCategory) = when (category) {
-    AnnouncementCategory.NEWS -> Res.string.announcements_category_news
-    AnnouncementCategory.PRIVACY -> Res.string.announcements_category_privacy
-    AnnouncementCategory.SURVEY -> Res.string.announcements_category_survey
-    AnnouncementCategory.SECURITY -> Res.string.announcements_category_security
-    AnnouncementCategory.STATUS -> Res.string.announcements_category_status
-}
