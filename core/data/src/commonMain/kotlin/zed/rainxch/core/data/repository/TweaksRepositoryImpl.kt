@@ -259,7 +259,7 @@ class TweaksRepositoryImpl(
 
     override fun getExternalMatchSearchEnabled(): Flow<Boolean> =
         preferences.data.map { prefs ->
-            prefs[EXTERNAL_MATCH_SEARCH_ENABLED_KEY] ?: false
+            prefs[EXTERNAL_MATCH_SEARCH_ENABLED_KEY] ?: true
         }
 
     override suspend fun setExternalMatchSearchEnabled(enabled: Boolean) {

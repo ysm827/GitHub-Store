@@ -76,11 +76,16 @@ class ExternalImportRepositoryImpl(
         }
     }
 
-    override suspend fun runFullScan(): ScanResult {
+    override suspend fun runFullScan(includeUnverified: Boolean): ScanResult {
         val started = nowMillis()
         val granted = scanner.isPermissionGranted()
         val rawCandidates = scanner.snapshot()
-        val candidates = rawCandidates.filter { hasPositiveEvidence(it) }
+        val candidates =
+            if (includeUnverified) {
+                rawCandidates
+            } else {
+                rawCandidates.filter { hasPositiveEvidence(it) }
+            }
         candidateSnapshot.update { candidates.associateBy { it.packageName } }
 
         val now = nowMillis()

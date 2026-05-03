@@ -46,8 +46,10 @@ import zed.rainxch.githubstore.core.presentation.res.external_import_card_action
 import zed.rainxch.githubstore.core.presentation.res.external_import_card_collapse_label
 import zed.rainxch.githubstore.core.presentation.res.external_import_card_expand_label
 import zed.rainxch.githubstore.core.presentation.res.external_import_card_installer_chip
-import zed.rainxch.githubstore.core.presentation.res.external_import_card_preselect_known
+import zed.rainxch.githubstore.core.presentation.res.external_import_card_owner_byline
+import zed.rainxch.githubstore.core.presentation.res.external_import_card_preselect_known_prefix
 import zed.rainxch.githubstore.core.presentation.res.external_import_card_preselect_unknown
+import zed.rainxch.githubstore.core.presentation.res.external_import_match_confidence_chip
 
 @Composable
 fun CandidateCard(
@@ -267,17 +269,48 @@ private fun PreselectedRow(suggestion: RepoSuggestionUi?) {
             )
         } else {
             val percent = (suggestion.confidence * 100).roundToInt().coerceIn(0, 100)
-            Text(
-                text =
-                    stringResource(
-                        Res.string.external_import_card_preselect_known,
-                        suggestion.ownerSlashRepo,
-                        percent,
-                    ) + "%",
-                style = MaterialTheme.typography.bodyMedium,
-                color = contentColor,
+            Column(
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp),
-            )
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                Text(
+                    text = stringResource(Res.string.external_import_card_preselect_known_prefix),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = contentColor,
+                )
+                Text(
+                    text = suggestion.repo,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = contentColor,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = stringResource(
+                            Res.string.external_import_card_owner_byline,
+                            suggestion.owner,
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = contentColor,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false),
+                    )
+                    Text(
+                        text = stringResource(
+                            Res.string.external_import_match_confidence_chip,
+                            percent,
+                        ) + "%",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = contentColor,
+                    )
+                }
+            }
         }
     }
 }

@@ -13,7 +13,7 @@ interface ExternalImportRepository {
 
     suspend fun scheduleInitialScanIfNeeded()
 
-    suspend fun runFullScan(): ScanResult
+    suspend fun runFullScan(includeUnverified: Boolean = false): ScanResult
 
     suspend fun runDeltaScan(changedPackageNames: Set<String>): ScanResult
 

@@ -203,7 +203,7 @@ class ExternalImportViewModel(
             try {
                 _state.update { it.copy(phase = ImportPhase.Scanning, errorMessage = null) }
 
-                externalImportRepository.runFullScan()
+                externalImportRepository.runFullScan(includeUnverified = true)
 
                 val candidates = externalImportRepository.pendingCandidatesFlow().first()
                 candidatesByPackage = candidates.associateBy { it.packageName }

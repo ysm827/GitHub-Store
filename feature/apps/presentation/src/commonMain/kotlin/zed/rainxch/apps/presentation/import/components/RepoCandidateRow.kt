@@ -30,6 +30,7 @@ import org.jetbrains.compose.resources.stringResource
 import zed.rainxch.apps.presentation.import.model.RepoSuggestionUi
 import zed.rainxch.apps.presentation.import.model.SuggestionSource
 import zed.rainxch.githubstore.core.presentation.res.Res
+import zed.rainxch.githubstore.core.presentation.res.external_import_card_owner_byline
 import zed.rainxch.githubstore.core.presentation.res.external_import_match_confidence_a11y
 import zed.rainxch.githubstore.core.presentation.res.external_import_match_confidence_chip
 
@@ -63,10 +64,20 @@ fun RepoCandidateRow(
     ) {
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(
-                text = suggestion.ownerSlashRepo,
+                text = suggestion.repo,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = stringResource(
+                    Res.string.external_import_card_owner_byline,
+                    suggestion.owner,
+                ),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
