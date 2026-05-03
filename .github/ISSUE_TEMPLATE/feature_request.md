@@ -1,20 +1,19 @@
 ---
 name: Feature request
-about: Suggest an idea for this project
+about: Pitch an idea — start with the user pain.
 title: ''
-labels: ''
+labels: enhancement
 assignees: ''
-
 ---
 
-**Is your feature request related to a problem? Please describe.**
-A clear and concise description of what the problem is. Ex. I'm always frustrated when [...]
+## The pain
 
-**Describe the solution you'd like**
-A clear and concise description of what you want to happen.
+What are you trying to do, and where does the current app fall short?
 
-**Describe alternatives you've considered**
-A clear and concise description of any alternative solutions or features you've considered.
+## What would help
 
-**Additional context**
-Add any other context or screenshots about the feature request here.
+What would the app do differently if this were solved?
+
+## Anything else
+
+Mockups, links, alternatives you considered. Optional.
