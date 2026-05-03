@@ -2,9 +2,9 @@ package zed.rainxch.core.data.repository
 
 import co.touchlab.kermit.Logger
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlin.time.Clock
-import kotlin.time.Instant
 import kotlinx.serialization.json.Json
 import zed.rainxch.core.data.dto.AnnouncementsResponseDto
 import zed.rainxch.core.data.mappers.toDomain
@@ -14,6 +14,7 @@ import zed.rainxch.core.domain.getPlatform
 import zed.rainxch.core.domain.model.Announcement
 import zed.rainxch.core.domain.model.AnnouncementCategory
 import zed.rainxch.core.domain.model.Platform
+import zed.rainxch.core.domain.repository.AnnouncementsCacheStore
 import zed.rainxch.core.domain.repository.AnnouncementsFeedSnapshot
 import zed.rainxch.core.domain.repository.AnnouncementsRepository
 import zed.rainxch.core.domain.repository.TweaksRepository
@@ -22,6 +23,7 @@ import zed.rainxch.core.domain.system.AppVersionInfo
 class AnnouncementsRepositoryImpl(
     private val backendApiClient: BackendApiClient,
     private val tweaksRepository: TweaksRepository,
+    private val cacheStore: AnnouncementsCacheStore,
     private val localizationManager: LocalizationManager,
     private val appVersionInfo: AppVersionInfo,
 ) : AnnouncementsRepository {
@@ -34,39 +36,52 @@ class AnnouncementsRepositoryImpl(
         Platform.WINDOWS, Platform.MACOS, Platform.LINUX -> "DESKTOP"
     }
 
-    override fun observeFeed(): Flow<AnnouncementsFeedSnapshot> =
-        combine(
-            tweaksRepository.getAnnouncementsCachedPayload(),
+    private val lastRefreshFailed = MutableStateFlow(false)
+
+    override fun observeFeed(): Flow<AnnouncementsFeedSnapshot> {
+        val persistedFlow = combine(
+            cacheStore.getCachedPayload(),
             tweaksRepository.getAnnouncementsDismissedIds(),
             tweaksRepository.getAnnouncementsAcknowledgedIds(),
             tweaksRepository.getAnnouncementsMutedCategories(),
             tweaksRepository.getAnnouncementsLastFetchedAt(),
-        ) { payload, dismissed, acknowledged, mutedNames, lastFetched ->
-            val items = parseAndFilter(payload)
-            val mutedCategories = mutedNames.mapNotNull { name ->
-                runCatching { AnnouncementCategory.valueOf(name) }.getOrNull()
-            }.toSet()
+        ) { payload, dismissed, acknowledged, mutedCategories, lastFetched ->
+            PersistedFeedState(payload, dismissed, acknowledged, mutedCategories, lastFetched)
+        }
+        return combine(persistedFlow, lastRefreshFailed) { persisted, refreshFailed ->
+            val items = parseAndFilter(persisted.payload)
             AnnouncementsFeedSnapshot(
                 items = items,
-                dismissedIds = dismissed,
-                acknowledgedIds = acknowledged,
-                mutedCategories = mutedCategories,
-                lastFetchedAtMillis = lastFetched,
-                lastRefreshFailed = false,
+                dismissedIds = persisted.dismissed,
+                acknowledgedIds = persisted.acknowledged,
+                mutedCategories = persisted.mutedCategories,
+                lastFetchedAtMillis = persisted.lastFetched,
+                lastRefreshFailed = refreshFailed,
             )
         }
+    }
+
+    private data class PersistedFeedState(
+        val payload: String?,
+        val dismissed: Set<String>,
+        val acknowledged: Set<String>,
+        val mutedCategories: Set<AnnouncementCategory>,
+        val lastFetched: Long,
+    )
 
     override suspend fun refresh(): Result<Unit> {
         val result = backendApiClient.getAnnouncements()
         return result.fold(
             onSuccess = { dto ->
                 val raw = json.encodeToString(AnnouncementsResponseDto.serializer(), dto)
-                tweaksRepository.setAnnouncementsCachedPayload(raw)
+                cacheStore.setCachedPayload(raw)
                 tweaksRepository.setAnnouncementsLastFetchedAt(nowMillis())
+                lastRefreshFailed.value = false
                 Result.success(Unit)
             },
             onFailure = { error ->
                 logger.w("Announcements refresh failed: ${error.message}")
+                lastRefreshFailed.value = true
                 Result.failure(error)
             },
         )
@@ -91,7 +106,7 @@ class AnnouncementsRepositoryImpl(
     override suspend fun setMuted(category: AnnouncementCategory, muted: Boolean) {
         if (!category.isMutable) return
         try {
-            tweaksRepository.setAnnouncementCategoryMuted(category.name, muted)
+            tweaksRepository.setAnnouncementCategoryMuted(category, muted)
         } catch (t: Throwable) {
             logger.e(t) { "Failed to persist mute toggle for $category" }
         }
@@ -107,14 +122,14 @@ class AnnouncementsRepositoryImpl(
         }
         val full = localizationManager.getCurrentLanguageCode()
         val primary = localizationManager.getPrimaryLanguageCode()
-        val now = nowMillis()
+        val now = Clock.System.now()
         val versionCode = appVersionInfo.versionCode
 
         return parsed.items
             .asSequence()
-            .map { it.toDomain(fullLocale = full, primaryLocale = primary) }
+            .mapNotNull { it.toDomain(fullLocale = full, primaryLocale = primary) }
             .filter { item ->
-                val expired = item.expiresAt?.let { isPastIso(it, now) } == true
+                val expired = item.expiresAt?.let { it < now } == true
                 val minVc = item.minVersionCode
                 val maxVc = item.maxVersionCode
                 val versionFloorOk = minVc == null || versionCode >= minVc
@@ -127,9 +142,4 @@ class AnnouncementsRepositoryImpl(
     }
 
     private fun nowMillis(): Long = Clock.System.now().toEpochMilliseconds()
-
-    private fun isPastIso(iso: String, nowMillis: Long): Boolean {
-        val parsed = runCatching { Instant.parse(iso).toEpochMilliseconds() }.getOrNull()
-        return parsed != null && parsed < nowMillis
-    }
 }
