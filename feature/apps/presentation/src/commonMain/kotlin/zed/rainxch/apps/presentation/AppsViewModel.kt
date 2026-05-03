@@ -1473,8 +1473,21 @@ class AppsViewModel(
             } catch (e: CancellationException) {
                 throw e
             } catch (t: Throwable) {
+                // Mirror uninstallApp's UX: a row-delete failure leaves
+                // the apps list pointing at metadata for an APK that's
+                // already been removed from disk, so the user has to
+                // know it didn't take. Log the cause and surface a
+                // localized error event for the snackbar host.
                 logger.error(
                     "discardPendingInstall: row delete failed for ${app.packageName}: ${t.message}",
+                )
+                _events.send(
+                    AppsEvent.ShowError(
+                        getString(
+                            Res.string.failed_to_discard_pending,
+                            app.appName,
+                        ),
+                    ),
                 )
             }
         }

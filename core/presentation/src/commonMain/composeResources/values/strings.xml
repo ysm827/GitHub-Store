@@ -259,6 +259,7 @@
     <string name="install_version">Install %1$s</string>
     <string name="failed_to_open_app">Failed to open %1$s</string>
     <string name="failed_to_uninstall">Failed to uninstall %1$s</string>
+    <string name="failed_to_discard_pending">Failed to discard pending install for %1$s</string>
 
     <!-- Install helpers -->
     <string name="open_in_obtainium">Open in Obtainium</string>
