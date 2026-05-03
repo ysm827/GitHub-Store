@@ -60,11 +60,12 @@ fun MuteSettingsBottomSheet(
             )
 
             AnnouncementCategory.entries.forEach { category ->
+                val locked = !category.isMutable
                 CategoryRow(
                     category = category,
                     label = stringResource(categoryLabel(category)),
-                    enabled = category !in mutedCategories,
-                    locked = !category.isMutable,
+                    enabled = if (locked) true else category !in mutedCategories,
+                    locked = locked,
                     onToggle = { newEnabled -> onToggle(category, !newEnabled) },
                 )
             }
