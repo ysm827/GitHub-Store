@@ -310,19 +310,32 @@ class DefaultDownloadOrchestrator(
         val ext = spec.asset.name.substringAfterLast('.', "").lowercase()
         try {
             installer.ensurePermissionsOrThrow(ext)
-            installer.install(filePath, ext)
-            // Successful install — clear any pending file path on
-            // the row (if it was set from a prior aborted attempt)
-            // and move the orchestrator entry to Completed.
-            try {
-                installedAppsRepository.setPendingInstallFilePath(spec.packageName, null)
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                Logger.w(e) { "Orchestrator: failed to clear pending install path" }
+            val outcome = installer.install(filePath, ext)
+            when (outcome) {
+                InstallOutcome.COMPLETED -> {
+                    try {
+                        installedAppsRepository.setPendingInstallFilePath(spec.packageName, null)
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        Logger.w(e) { "Orchestrator: failed to clear pending install path" }
+                    }
+                    pendingInstallNotifier.clearPending(spec.packageName)
+                    updateEntry(spec.packageName) {
+                        it.copy(stage = DownloadStage.Completed, installOutcome = outcome)
+                    }
+                }
+
+                InstallOutcome.DELEGATED_TO_SYSTEM -> {
+                    Logger.i {
+                        "Orchestrator: AlwaysInstall path returned DELEGATED_TO_SYSTEM " +
+                            "for ${spec.packageName}; Completed-with-pending so DB row stays pending"
+                    }
+                    updateEntry(spec.packageName) {
+                        it.copy(stage = DownloadStage.Completed, installOutcome = outcome)
+                    }
+                }
             }
-            pendingInstallNotifier.clearPending(spec.packageName)
-            updateEntry(spec.packageName) { it.copy(stage = DownloadStage.Completed) }
         } catch (e: CancellationException) {
             throw e
         } catch (t: Throwable) {

@@ -212,6 +212,7 @@ data class OrchestratedDownload(
     val totalBytes: Long? = null,
     /** Error message if [stage] is [DownloadStage.Failed]. */
     val errorMessage: String? = null,
+    val installOutcome: InstallOutcome? = null,
 )
 
 /**

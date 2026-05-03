@@ -1877,19 +1877,26 @@ class DetailsViewModel(
                 }
 
                 OrchestratorStage.Completed -> {
-                    // Shizuku/AlwaysInstall path: orchestrator
-                    // installed silently. Persist the DB row here —
-                    // PackageEventReceiver only patches existing rows
-                    // and would skip a fresh Shizuku install.
+                    val resolvedOutcome = entry.installOutcome ?: InstallOutcome.COMPLETED
+                    val isCompleted = resolvedOutcome == InstallOutcome.COMPLETED
+
                     _state.value = _state.value.copy(downloadStage = DownloadStage.IDLE)
                     currentAssetName = null
                     appendLog(
                         assetName = assetName,
                         size = sizeBytes,
                         tag = releaseTag,
-                        result = if (isUpdate) LogResult.Updated else LogResult.Installed,
+                        result = when {
+                            !isCompleted -> LogResult.Downloaded
+                            isUpdate -> LogResult.Updated
+                            else -> LogResult.Installed
+                        },
                     )
-                    _state.value.repository?.id?.let { telemetryRepository.recordInstallSucceeded(it) }
+                    if (isCompleted) {
+                        _state.value.repository?.id?.let {
+                            telemetryRepository.recordInstallSucceeded(it)
+                        }
+                    }
 
                     if (platform == Platform.ANDROID) {
                         val filePath = entry.filePath
@@ -1908,23 +1915,29 @@ class DetailsViewModel(
                                         assetSize = sizeBytes,
                                         releaseTag = releaseTag,
                                         isUpdate = isUpdate,
-                                        installOutcome = InstallOutcome.COMPLETED,
+                                        installOutcome = resolvedOutcome,
                                         parkedFilePath = filePath,
                                     )
                                 } else {
                                     logger.warn(
-                                        "Shizuku install completed but APK validation failed: $validation",
+                                        "Orchestrator install settled (outcome=$resolvedOutcome) " +
+                                            "but APK validation failed: $validation",
                                     )
                                 }
                             }.onFailure { t ->
-                                logger.error("Failed to persist Shizuku install: ${t.message}")
+                                logger.error("Failed to persist orchestrator install: ${t.message}")
                             }
                         } else {
-                            logger.warn("Shizuku install completed but filePath is null; DB not updated")
+                            logger.warn(
+                                "Orchestrator install settled (outcome=$resolvedOutcome) " +
+                                    "but filePath is null; DB not updated",
+                            )
                         }
                     }
 
-                    downloadOrchestrator.dismiss(packageKey)
+                    if (isCompleted) {
+                        downloadOrchestrator.dismiss(packageKey)
+                    }
                     return@collect
                 }
 
