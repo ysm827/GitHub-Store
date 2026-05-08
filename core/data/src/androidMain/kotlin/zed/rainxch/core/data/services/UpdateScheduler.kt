@@ -7,6 +7,7 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.ExistingWorkPolicy
 import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.OutOfQuotaPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import co.touchlab.kermit.Logger
@@ -49,6 +50,12 @@ object UpdateScheduler {
             OneTimeWorkRequestBuilder<UpdateCheckWorker>()
                 .setConstraints(constraints)
                 .setInitialDelay(1, TimeUnit.MINUTES)
+                // Aggressive-OEM ROMs (Oppo / OnePlus / Realme / Xiaomi)
+                // throttle generic background work hard. Expedited tier
+                // gets more headroom; fall back to non-expedited when
+                // the system has no expedited budget left so the work
+                // still runs eventually rather than failing outright.
+                .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
                 .build()
 
         WorkManager
@@ -108,7 +115,15 @@ object UpdateScheduler {
                     BackoffPolicy.EXPONENTIAL,
                     15,
                     TimeUnit.MINUTES,
-                ).build()
+                )
+                // Intentionally NOT expedited: AutoUpdateWorker downloads
+                // multiple APKs and installs them sequentially, which can
+                // easily exceed the 10-minute expedited time limit and
+                // get the worker terminated mid-install. The worker
+                // already promotes itself to a foreground service via
+                // setForeground, which gives it the headroom it needs
+                // without the expedited time cap.
+                .build()
 
         WorkManager
             .getInstance(context)
