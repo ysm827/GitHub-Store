@@ -400,6 +400,14 @@ class AppsViewModel(
                 toggleUpdateCheck(action.packageName, action.enabled)
             }
 
+            is AppsAction.OnSkipReleaseTag -> {
+                skipReleaseTag(action.packageName, action.tag)
+            }
+
+            is AppsAction.OnUnskipReleaseTag -> {
+                unskipReleaseTag(action.packageName)
+            }
+
             is AppsAction.OnOpenAdvancedSettings -> {
                 openAdvancedSettings(action.app)
             }
@@ -600,6 +608,37 @@ class AppsViewModel(
                 throw e
             } catch (e: Exception) {
                 logger.error("Failed to toggle update check for $packageName: ${e.message}")
+            }
+        }
+    }
+
+    private fun skipReleaseTag(packageName: String, tag: String) {
+        val trimmed = tag.trim()
+        if (trimmed.isEmpty()) return
+        viewModelScope.launch {
+            try {
+                installedAppsRepository.setSkippedReleaseTag(packageName, trimmed)
+                _events.send(AppsEvent.ShowSuccess(getString(Res.string.apps_skip_version_snackbar, trimmed)))
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                logger.error("Failed to skip release $trimmed for $packageName: ${e.message}")
+                _events.send(AppsEvent.ShowError(getString(Res.string.apps_skip_version_error)))
+            }
+        }
+    }
+
+    private fun unskipReleaseTag(packageName: String) {
+        viewModelScope.launch {
+            try {
+                installedAppsRepository.setSkippedReleaseTag(packageName, null)
+                installedAppsRepository.checkForUpdates(packageName)
+                _events.send(AppsEvent.ShowSuccess(getString(Res.string.apps_unskip_version_snackbar)))
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                logger.error("Failed to unskip release for $packageName: ${e.message}")
+                _events.send(AppsEvent.ShowError(getString(Res.string.apps_skip_version_error)))
             }
         }
     }

@@ -61,6 +61,7 @@ import zed.rainxch.githubstore.core.presentation.res.apps_compact_status_ready_t
 import zed.rainxch.githubstore.core.presentation.res.apps_compact_status_variant_pinned
 import zed.rainxch.githubstore.core.presentation.res.apps_compact_status_variant_stale
 import zed.rainxch.githubstore.core.presentation.res.apps_ignore_updates
+import zed.rainxch.githubstore.core.presentation.res.apps_skip_version_unskip
 import zed.rainxch.githubstore.core.presentation.res.install
 import zed.rainxch.githubstore.core.presentation.res.open
 import zed.rainxch.githubstore.core.presentation.res.pre_release_badge
@@ -91,6 +92,7 @@ fun CompactAppRow(
     onUninstallClick: () -> Unit,
     onTogglePreReleases: (Boolean) -> Unit,
     onToggleUpdateCheck: (Boolean) -> Unit,
+    onUnskipVersionClick: () -> Unit,
     onRowClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -205,12 +207,14 @@ fun CompactAppRow(
             isUpdateAvailable = app.isUpdateAvailable,
             isPreReleaseEnabled = app.includePreReleases,
             isUpdateCheckEnabled = app.updateCheckEnabled,
+            hasSkippedReleaseTag = app.skippedReleaseTag != null,
             onAdvancedSettingsClick = onAdvancedSettingsClick,
             onPickVariantClick = onPickVariantClick,
             onUninstallClick = onUninstallClick,
             onTogglePreReleases = onTogglePreReleases,
             onToggleUpdateCheck = onToggleUpdateCheck,
             onDiscardPendingClick = onDiscardPendingClick,
+            onUnskipVersionClick = onUnskipVersionClick,
         )
     }
 }
@@ -223,12 +227,14 @@ private fun CompactRowOverflow(
     isUpdateAvailable: Boolean,
     isPreReleaseEnabled: Boolean,
     isUpdateCheckEnabled: Boolean,
+    hasSkippedReleaseTag: Boolean,
     onAdvancedSettingsClick: () -> Unit,
     onPickVariantClick: () -> Unit,
     onUninstallClick: () -> Unit,
     onTogglePreReleases: (Boolean) -> Unit,
     onToggleUpdateCheck: (Boolean) -> Unit,
     onDiscardPendingClick: () -> Unit,
+    onUnskipVersionClick: () -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
     val moreActionsLabel = stringResource(Res.string.apps_compact_more_actions, appName)
@@ -289,6 +295,15 @@ private fun CompactRowOverflow(
                     onToggleUpdateCheck(!isUpdateCheckEnabled)
                 },
             )
+            if (hasSkippedReleaseTag) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(Res.string.apps_skip_version_unskip)) },
+                    onClick = {
+                        expanded = false
+                        onUnskipVersionClick()
+                    },
+                )
+            }
             if (isPending) {
                 DropdownMenuItem(
                     text = {

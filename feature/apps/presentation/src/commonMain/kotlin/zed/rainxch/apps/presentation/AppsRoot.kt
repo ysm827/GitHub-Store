@@ -112,6 +112,8 @@ import zed.rainxch.githubstore.core.presentation.res.add_from_starred_title
 import zed.rainxch.githubstore.core.presentation.res.advanced_settings_open
 import zed.rainxch.githubstore.core.presentation.res.apps_compact_more_actions
 import zed.rainxch.githubstore.core.presentation.res.apps_ignore_updates
+import zed.rainxch.githubstore.core.presentation.res.apps_skip_version
+import zed.rainxch.githubstore.core.presentation.res.apps_skip_version_unskip
 import zed.rainxch.githubstore.core.presentation.res.apps_section_up_to_date
 import zed.rainxch.githubstore.core.presentation.res.apps_section_updates_available
 import zed.rainxch.githubstore.core.presentation.res.install
@@ -699,6 +701,22 @@ fun AppsScreen(
                                                 onDiscardPendingClick = {
                                                     onAction(AppsAction.OnDiscardPendingInstall(appItem.installedApp))
                                                 },
+                                                onSkipVersionClick = {
+                                                    val tag =
+                                                        appItem.installedApp.latestVersion
+                                                            ?: appItem.installedApp.latestVersionName
+                                                    if (!tag.isNullOrBlank()) {
+                                                        onAction(
+                                                            AppsAction.OnSkipReleaseTag(
+                                                                appItem.installedApp.packageName,
+                                                                tag,
+                                                            ),
+                                                        )
+                                                    }
+                                                },
+                                                onUnskipVersionClick = {
+                                                    onAction(AppsAction.OnUnskipReleaseTag(appItem.installedApp.packageName))
+                                                },
                                             )
                                         }
                                     }
@@ -758,6 +776,13 @@ fun AppsScreen(
                                                             AppsAction.OnToggleUpdateCheck(
                                                                 appItem.installedApp.packageName,
                                                                 enabled,
+                                                            ),
+                                                        )
+                                                    },
+                                                    onUnskipVersionClick = {
+                                                        onAction(
+                                                            AppsAction.OnUnskipReleaseTag(
+                                                                appItem.installedApp.packageName,
                                                             ),
                                                         )
                                                     },
@@ -854,6 +879,8 @@ fun AppItemCard(
     onPickVariantClick: () -> Unit,
     onInstallPendingClick: () -> Unit,
     onDiscardPendingClick: () -> Unit,
+    onSkipVersionClick: () -> Unit,
+    onUnskipVersionClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val app = appItem.installedApp
@@ -1127,6 +1154,30 @@ fun AppItemCard(
                                     onToggleUpdateCheck(!app.updateCheckEnabled)
                                 },
                             )
+
+                            // Skip-this-version is only meaningful when an
+                            // update is currently being prompted (we have a
+                            // latestVersion to skip). When the row already
+                            // has a skipped tag stored, surface the unskip
+                            // affordance instead so the user can revert the
+                            // suppression without leaving the row.
+                            if (app.skippedReleaseTag != null) {
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(Res.string.apps_skip_version_unskip)) },
+                                    onClick = {
+                                        showRowOverflow = false
+                                        onUnskipVersionClick()
+                                    },
+                                )
+                            } else if (app.isUpdateAvailable && !app.latestVersion.isNullOrBlank()) {
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(Res.string.apps_skip_version)) },
+                                    onClick = {
+                                        showRowOverflow = false
+                                        onSkipVersionClick()
+                                    },
+                                )
+                            }
                         }
                     }
                 }

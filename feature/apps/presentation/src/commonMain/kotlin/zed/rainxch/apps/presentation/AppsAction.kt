@@ -74,6 +74,17 @@ sealed interface AppsAction {
     // Per-app update-check toggle (issue #536: ignore updates for individual apps)
     data class OnToggleUpdateCheck(val packageName: String, val enabled: Boolean) : AppsAction
 
+    // Per-app skip-this-version (issue #542: dismiss false-positive update prompts).
+    // [tag] is the upstream release tag the user is choosing to skip — the
+    // ViewModel persists it on the row and the periodic check suppresses the
+    // badge until a strictly newer release lands.
+    data class OnSkipReleaseTag(val packageName: String, val tag: String) : AppsAction
+
+    // Clears the per-app skip; the next update check will surface the badge
+    // again if a release matching the user's filters is still ahead of the
+    // installed version.
+    data class OnUnskipReleaseTag(val packageName: String) : AppsAction
+
     // Per-app advanced settings sheet (monorepo)
     data class OnOpenAdvancedSettings(val app: InstalledAppUi) : AppsAction
     data object OnDismissAdvancedSettings : AppsAction
