@@ -37,6 +37,15 @@ sealed interface AppsAction {
 
     data object OnRefresh : AppsAction
 
+    // Fired by AppsRoot on ON_RESUME. Routes through the existing
+    // cooldown-gated refresh path (`autoCheckForUpdatesIfNeeded`) so
+    // re-entering the Apps screen catches external installs that
+    // `PackageEventReceiver` may have missed — e.g. when GHS was
+    // background-killed by an aggressive OEM ROM and never received
+    // the PACKAGE_REPLACED broadcast. The 30-minute cooldown keeps
+    // rapid resumes from burning GitHub rate limits.
+    data object OnLifecycleResume : AppsAction
+
     data object OnToggleUpToDateSection : AppsAction
 
     data class OnNavigateToRepo(
