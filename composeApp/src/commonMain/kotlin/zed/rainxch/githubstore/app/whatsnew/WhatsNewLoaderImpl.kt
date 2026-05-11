@@ -23,10 +23,15 @@ class WhatsNewLoaderImpl(
             .mapNotNull { vc -> loadOrNull(vc, languageTag) }
             .sortedByDescending { it.versionCode }
 
-    override suspend fun forVersionCode(versionCode: Int, languageTag: String?): WhatsNewEntry? =
-        loadOrNull(versionCode, languageTag)
+    override suspend fun forVersionCode(
+        versionCode: Int,
+        languageTag: String?,
+    ): WhatsNewEntry? = loadOrNull(versionCode, languageTag)
 
-    private suspend fun loadOrNull(versionCode: Int, languageTag: String?): WhatsNewEntry? {
+    private suspend fun loadOrNull(
+        versionCode: Int,
+        languageTag: String?,
+    ): WhatsNewEntry? {
         val candidates = candidatePaths(versionCode, languageTag)
         for (path in candidates) {
             val parsed = readEntry(path)
@@ -35,17 +40,21 @@ class WhatsNewLoaderImpl(
         return null
     }
 
-    private fun candidatePaths(versionCode: Int, languageTag: String?): List<String> {
+    private fun candidatePaths(
+        versionCode: Int,
+        languageTag: String?,
+    ): List<String> {
         // Explicit tag passed in wins over global Locale lookup —
         // prevents the race with MainActivity's `setActiveLanguageTag`
         // when both this VM and MainActivity subscribe to the same
         // `getAppLanguage()` flow (#526 follow-up).
-        val (full, primary) = if (!languageTag.isNullOrBlank()) {
-            languageTag to languageTag.substringBefore('-')
-        } else {
-            localizationManager.getCurrentLanguageCode() to
-                localizationManager.getPrimaryLanguageCode()
-        }
+        val (full, primary) =
+            if (!languageTag.isNullOrBlank()) {
+                languageTag to languageTag.substringBefore('-')
+            } else {
+                localizationManager.getCurrentLanguageCode() to
+                    localizationManager.getPrimaryLanguageCode()
+            }
         val paths = LinkedHashSet<String>()
         if (full.isNotBlank()) paths += "files/whatsnew/$full/$versionCode.json"
         if (primary.isNotBlank() && primary != full) paths += "files/whatsnew/$primary/$versionCode.json"
