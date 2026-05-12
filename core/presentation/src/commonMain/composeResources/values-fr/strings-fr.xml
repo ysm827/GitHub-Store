@@ -255,9 +255,9 @@
     <string name="star_repos_hint">Ajoutez des dépôts avec des versions installables sur GitHub pour les voir ici</string>
     <string name="last_synced">Dernière synchronisation</string>
     <string name="just_now">À l’instant</string>
-    <string name="minutes_ago">Il y a %d min</string>
-    <string name="hours_ago">Il y a %d h</string>
-    <string name="days_ago">Il y a %d j</string>
+    <string name="minutes_ago">Il y a %1$d min</string>
+    <string name="hours_ago">Il y a %1$d h</string>
+    <string name="days_ago">Il y a %1$d j</string>
     <string name="dismiss">Fermer</string>
     <string name="sync_starred_failed">Échec de la synchronisation des dépôts favoris</string>
 

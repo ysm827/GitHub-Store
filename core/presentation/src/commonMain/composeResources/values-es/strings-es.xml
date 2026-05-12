@@ -255,9 +255,9 @@
     <string name="star_repos_hint">Marca repositorios con lanzamientos instalables en GitHub para verlos aquí</string>
     <string name="last_synced">Última sincronización</string>
     <string name="just_now">Justo ahora</string>
-    <string name="minutes_ago">Hace %d min</string>
-    <string name="hours_ago">Hace %d h</string>
-    <string name="days_ago">Hace %d d</string>
+    <string name="minutes_ago">Hace %1$d min</string>
+    <string name="hours_ago">Hace %1$d h</string>
+    <string name="days_ago">Hace %1$d d</string>
     <string name="dismiss">Cerrar</string>
     <string name="sync_starred_failed">No se pudieron sincronizar los repositorios destacados</string>
 
