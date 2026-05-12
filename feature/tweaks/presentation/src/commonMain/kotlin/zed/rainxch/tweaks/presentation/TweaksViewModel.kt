@@ -37,6 +37,7 @@ import zed.rainxch.tweaks.presentation.model.ProxyScopeFormState
 import zed.rainxch.githubstore.core.presentation.res.Res
 import zed.rainxch.githubstore.core.presentation.res.failed_to_save_proxy_settings
 import zed.rainxch.githubstore.core.presentation.res.invalid_proxy_port
+import zed.rainxch.githubstore.core.presentation.res.proxy_host_invalid
 import zed.rainxch.githubstore.core.presentation.res.proxy_host_required
 import zed.rainxch.githubstore.core.presentation.res.proxy_test_error_auth_required
 import zed.rainxch.githubstore.core.presentation.res.proxy_test_error_dns
@@ -635,13 +636,14 @@ class TweaksViewModel(
                             val host =
                                 form.host.trim().takeIf { isValidProxyHost(it) }
                                     ?: run {
-                                        val msg =
-                                            if (form.host.isBlank()) {
-                                                getString(Res.string.proxy_host_required)
-                                            } else {
-                                                getString(Res.string.proxy_host_invalid)
-                                            }
+                                        val isBlank = form.host.isBlank()
                                         viewModelScope.launch {
+                                            val msg =
+                                                if (isBlank) {
+                                                    getString(Res.string.proxy_host_required)
+                                                } else {
+                                                    getString(Res.string.proxy_host_invalid)
+                                                }
                                             _events.send(TweaksEvent.OnProxySaveError(msg))
                                         }
                                         return
@@ -1021,13 +1023,14 @@ class TweaksViewModel(
                 val host =
                     form.host.trim().takeIf { isValidProxyHost(it) }
                         ?: run {
-                            val msg =
-                                if (form.host.isBlank()) {
-                                    getString(Res.string.proxy_host_required)
-                                } else {
-                                    getString(Res.string.proxy_host_invalid)
-                                }
+                            val isBlank = form.host.isBlank()
                             viewModelScope.launch {
+                                val msg =
+                                    if (isBlank) {
+                                        getString(Res.string.proxy_host_required)
+                                    } else {
+                                        getString(Res.string.proxy_host_invalid)
+                                    }
                                 _events.send(TweaksEvent.OnProxyTestError(msg))
                             }
                             return null
