@@ -145,6 +145,7 @@ class DetailsViewModel(
                 if (!hasLoadedInitialData) {
                     loadInitial()
                     observeApkInspectCoachmark()
+                    observeChannelChipCoachmark()
                     observeCurrentUserForBadge()
 
                     hasLoadedInitialData = true
@@ -463,6 +464,10 @@ class DetailsViewModel(
             }
 
             DetailsAction.ToggleIncludeBetas -> {
+                // Tapping the chip is the strongest possible signal that
+                // the user has discovered the toggle. No need to keep
+                // pulsing it after that.
+                acknowledgeChannelChipCoachmark()
                 toggleIncludeBetas()
             }
 
@@ -482,6 +487,10 @@ class DetailsViewModel(
 
             DetailsAction.OnAcknowledgeApkInspectCoachmark -> {
                 acknowledgeApkInspectCoachmark()
+            }
+
+            DetailsAction.OnAcknowledgeChannelChipCoachmark -> {
+                acknowledgeChannelChipCoachmark()
             }
         }
     }
@@ -542,6 +551,17 @@ class DetailsViewModel(
             runCatching { tweaksRepository.setApkInspectCoachmarkShown(true) }
                 .onFailure { t ->
                     logger.warn("Failed to persist APK inspect coachmark flag: ${t.message}")
+                }
+        }
+    }
+
+    private fun acknowledgeChannelChipCoachmark() {
+        if (!_state.value.isChannelChipCoachmarkPending) return
+        _state.update { it.copy(isChannelChipCoachmarkPending = false) }
+        viewModelScope.launch {
+            runCatching { tweaksRepository.setChannelChipCoachmarkShown(true) }
+                .onFailure { t ->
+                    logger.warn("Failed to persist channel chip coachmark flag: ${t.message}")
                 }
         }
     }
@@ -845,6 +865,22 @@ class DetailsViewModel(
                 firstStable.installedApp?.isReallyInstalled() == true
             if (!installedAtOpen) return@launch
             _state.update { it.copy(isApkInspectCoachmarkPending = true) }
+        }
+    }
+
+    private fun observeChannelChipCoachmark() {
+        viewModelScope.launch {
+            val alreadyShown =
+                runCatching { tweaksRepository.getChannelChipCoachmarkShown().first() }
+                    .getOrDefault(true)
+            if (alreadyShown) return@launch
+            // ChannelChip only renders when the app is tracked
+            // (`installedApp != null` in `ReleaseChannel.releaseChannel`).
+            // No point pulsing a non-existent chip — defer to a future
+            // visit where the user actually has the app installed.
+            val firstStable = _state.first { !it.isLoading }
+            if (firstStable.installedApp == null) return@launch
+            _state.update { it.copy(isChannelChipCoachmarkPending = true) }
         }
     }
 

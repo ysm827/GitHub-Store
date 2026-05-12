@@ -152,4 +152,11 @@ sealed interface DetailsAction {
      * coachmark only ever shows once.
      */
     data object OnAcknowledgeApkInspectCoachmark : DetailsAction
+
+    /**
+     * Acknowledges the release-channel chip coachmark. Fired on
+     * tap/dismiss or when the user toggles the channel chip itself.
+     * Persists so the coachmark only ever shows once.
+     */
+    data object OnAcknowledgeChannelChipCoachmark : DetailsAction
 }

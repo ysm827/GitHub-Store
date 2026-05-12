@@ -128,6 +128,12 @@ data class DetailsState(
      * pulse + tooltip animation in the install button row.
      */
     val isApkInspectCoachmarkPending: Boolean = false,
+    /**
+     * One-shot flag — `false` until the user has seen the
+     * release-channel coachmark. Drives the pulse + tooltip on the
+     * `ChannelChip` so users discover the per-app channel toggle.
+     */
+    val isChannelChipCoachmarkPending: Boolean = false,
 ) {
     val filteredReleases: List<GithubRelease>
         get() =

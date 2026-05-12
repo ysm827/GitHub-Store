@@ -1,7 +1,13 @@
 package zed.rainxch.details.presentation.components.sections
 
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
@@ -10,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -23,17 +30,26 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupProperties
 import org.jetbrains.compose.resources.stringResource
 import zed.rainxch.details.presentation.DetailsAction
 import zed.rainxch.details.presentation.DetailsState
 import zed.rainxch.githubstore.core.presentation.res.Res
 import zed.rainxch.githubstore.core.presentation.res.action_switch_to_stable
+import zed.rainxch.githubstore.core.presentation.res.channel_chip_coachmark_body
+import zed.rainxch.githubstore.core.presentation.res.channel_chip_coachmark_dismiss
+import zed.rainxch.githubstore.core.presentation.res.channel_chip_coachmark_title
 import zed.rainxch.githubstore.core.presentation.res.channel_chip_include_betas
 import zed.rainxch.githubstore.core.presentation.res.channel_chip_stable_only
 import zed.rainxch.githubstore.core.presentation.res.merged_whats_changed_title
@@ -86,27 +102,37 @@ fun LazyListScope.releaseChannel(
                             } else {
                                 stringResource(Res.string.channel_chip_stable_only)
                             }
-                        ChannelChip(
-                            label = channelLabel,
-                            icon = Icons.Default.Science,
-                            // Visually signal the "hot" channel when the user
-                            // has opted into betas; keep it muted when they're
-                            // on the default stable-only track.
-                            tint =
-                                if (includeBetas) {
-                                    MaterialTheme.colorScheme.tertiary
-                                } else {
-                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                },
-                            onClick = { onAction(DetailsAction.ToggleIncludeBetas) },
-                            // Mirror the visible label so screen readers hear
-                            // the current channel ("Include betas" / "Stable
-                            // only") instead of the previous static
-                            // "Toggle beta releases for this app" string,
-                            // which gave no indication of which side the
-                            // toggle is currently on.
-                            contentDescriptionText = channelLabel,
-                        )
+                        val pulse by rememberChipPulse(active = state.isChannelChipCoachmarkPending)
+                        Box(modifier = Modifier.scale(pulse)) {
+                            ChannelChip(
+                                label = channelLabel,
+                                icon = Icons.Default.Science,
+                                // Visually signal the "hot" channel when the user
+                                // has opted into betas; keep it muted when they're
+                                // on the default stable-only track.
+                                tint =
+                                    if (includeBetas) {
+                                        MaterialTheme.colorScheme.tertiary
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                    },
+                                onClick = { onAction(DetailsAction.ToggleIncludeBetas) },
+                                // Mirror the visible label so screen readers hear
+                                // the current channel ("Include betas" / "Stable
+                                // only") instead of the previous static
+                                // "Toggle beta releases for this app" string,
+                                // which gave no indication of which side the
+                                // toggle is currently on.
+                                contentDescriptionText = channelLabel,
+                            )
+                            if (state.isChannelChipCoachmarkPending) {
+                                ChannelChipCoachmark(
+                                    onDismiss = {
+                                        onAction(DetailsAction.OnAcknowledgeChannelChipCoachmark)
+                                    },
+                                )
+                            }
+                        }
                     }
 
                     if (showSwitchToStable) {
@@ -253,6 +279,82 @@ private fun ChannelChip(
                 style = MaterialTheme.typography.labelMedium,
                 color = tint,
             )
+        }
+    }
+}
+
+@Composable
+private fun rememberChipPulse(active: Boolean) =
+    rememberInfiniteTransition(label = "channel-chip-pulse")
+        .animateFloat(
+            initialValue = 1f,
+            targetValue = if (active) 1.06f else 1f,
+            animationSpec =
+                infiniteRepeatable(
+                    animation = tween(durationMillis = 1100),
+                    repeatMode = RepeatMode.Reverse,
+                ),
+            label = "channel-chip-pulse-scale",
+        )
+
+@Composable
+private fun ChannelChipCoachmark(onDismiss: () -> Unit) {
+    Popup(
+        alignment = Alignment.TopStart,
+        offset = androidx.compose.ui.unit.IntOffset(x = 0, y = -220),
+        properties =
+            PopupProperties(
+                focusable = false,
+                dismissOnBackPress = true,
+                dismissOnClickOutside = false,
+            ),
+        onDismissRequest = onDismiss,
+    ) {
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = MaterialTheme.colorScheme.primary,
+            shadowElevation = 6.dp,
+            modifier = Modifier.width(280.dp),
+        ) {
+            Column(
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Science,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Text(
+                        text = stringResource(Res.string.channel_chip_coachmark_title),
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
+                Text(
+                    text = stringResource(Res.string.channel_chip_coachmark_body),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.9f),
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                    horizontalArrangement = Arrangement.End,
+                ) {
+                    TextButton(onClick = onDismiss) {
+                        Text(
+                            text = stringResource(Res.string.channel_chip_coachmark_dismiss),
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    }
+                }
+            }
         }
     }
 }
