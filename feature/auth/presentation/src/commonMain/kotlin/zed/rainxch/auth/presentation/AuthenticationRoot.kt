@@ -89,6 +89,7 @@ import zed.rainxch.core.presentation.components.GithubStoreButton
 import zed.rainxch.core.presentation.theme.GithubStoreTheme
 import zed.rainxch.core.presentation.utils.ObserveAsEvents
 import zed.rainxch.githubstore.core.presentation.res.Res
+import zed.rainxch.githubstore.core.presentation.res.auth_use_device_code_instead
 import zed.rainxch.githubstore.core.presentation.res.pat_cancel
 import zed.rainxch.githubstore.core.presentation.res.pat_hide
 import zed.rainxch.githubstore.core.presentation.res.pat_input_label
@@ -323,7 +324,7 @@ private fun StateLoggedOut(onAction: (AuthenticationAction) -> Unit) {
 
         GithubStoreButton(
             text = stringResource(Res.string.sign_in_with_github),
-            onClick = { onAction(AuthenticationAction.StartLogin) },
+            onClick = { onAction(AuthenticationAction.StartWebAuth) },
             icon = {
                 Icon(
                     painter = painterResource(Res.drawable.ic_github),
@@ -341,6 +342,14 @@ private fun StateLoggedOut(onAction: (AuthenticationAction) -> Unit) {
                 text = stringResource(Res.string.pat_use_token_instead),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.primary,
+            )
+        }
+
+        TextButton(onClick = { onAction(AuthenticationAction.StartLogin) }) {
+            Text(
+                text = stringResource(Res.string.auth_use_device_code_instead),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.outline,
             )
         }
 

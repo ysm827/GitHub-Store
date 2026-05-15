@@ -228,6 +228,7 @@
     <string name="update_available">Update available</string>
     <string name="not_available">Not available</string>
     <string name="pat_use_token_instead">Having trouble? Use a Personal Access Token</string>
+    <string name="auth_use_device_code_instead">Use device code instead</string>
     <string name="pat_sheet_title">Sign in with Personal Access Token</string>
     <string name="pat_sheet_description">Create a Personal Access Token (classic or fine-grained) on any device that can reach GitHub, then paste it below. Needs read access to repositories and your profile.</string>
     <string name="pat_open_settings">Open GitHub token settings</string>

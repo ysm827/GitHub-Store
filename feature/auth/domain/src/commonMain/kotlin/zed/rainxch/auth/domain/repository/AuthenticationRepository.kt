@@ -41,7 +41,16 @@ interface AuthenticationRepository {
      *   the token.
      */
     suspend fun signInWithPat(token: String): Result<Unit>
+
+    suspend fun registerWebAuth(): Result<WebAuthRegistration>
+
+    suspend fun exchangeWebAuthHandoff(handoffId: String): Result<String>
 }
+
+data class WebAuthRegistration(
+    val state: String,
+    val authUrl: String,
+)
 
 enum class AuthPath { Backend, Direct }
 

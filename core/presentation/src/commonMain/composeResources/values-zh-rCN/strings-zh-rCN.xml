@@ -709,6 +709,7 @@
 
     <!-- Personal Access Token sign-in (#433 follow-up) -->
     <string name="pat_use_token_instead">遇到问题？使用 Personal Access Token</string>
+    <string name="auth_use_device_code_instead">改用设备代码</string>
     <string name="pat_sheet_title">使用 Personal Access Token 登录</string>
     <string name="pat_sheet_description">在能访问 GitHub 的任何设备上创建 Personal Access Token（classic 或 fine-grained），然后粘贴到下方。需要对仓库和个人资料的读取权限。</string>
     <string name="pat_open_settings">打开 GitHub 令牌设置</string>

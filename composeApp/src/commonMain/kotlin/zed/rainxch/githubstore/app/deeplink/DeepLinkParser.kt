@@ -13,6 +13,16 @@ sealed interface DeepLinkDestination {
      */
     data object Apps : DeepLinkDestination
 
+    data class AuthHandoff(
+        val handoffId: String,
+        val state: String,
+    ) : DeepLinkDestination
+
+    data class AuthError(
+        val reason: String,
+        val state: String,
+    ) : DeepLinkDestination
+
     data object None : DeepLinkDestination
 }
 
@@ -57,6 +67,8 @@ object DeepLinkParser {
             "team",
         )
 
+    private val BASE64URL_RE = Regex("^[A-Za-z0-9_-]+$")
+
     fun parse(uri: String): DeepLinkDestination {
         return when {
             // Pending-install notification opens the apps tab. No path
@@ -65,6 +77,10 @@ object DeepLinkParser {
             // user to the right tab.
             uri == "githubstore://apps" || uri == "githubstore://apps/" || uri.startsWith("githubstore://apps?") -> {
                 DeepLinkDestination.Apps
+            }
+
+            uri.startsWith("githubstore://auth?") -> {
+                parseAuthCallback(uri)
             }
 
             uri.startsWith("githubstore://repo/") -> {
@@ -212,6 +228,30 @@ object DeepLinkParser {
         }
 
         return true
+    }
+
+    private fun parseAuthCallback(uri: String): DeepLinkDestination {
+        val state = extractQueryParam(uri, "state")?.let { urlDecode(it) } ?: return DeepLinkDestination.None
+        if (state.isEmpty() || state.length > 256 || !BASE64URL_RE.matches(state)) {
+            return DeepLinkDestination.None
+        }
+
+        val handoff = extractQueryParam(uri, "handoff")?.let { urlDecode(it) }
+        if (handoff != null) {
+            if (handoff.isEmpty() || handoff.length > 256 || !BASE64URL_RE.matches(handoff)) {
+                return DeepLinkDestination.None
+            }
+            return DeepLinkDestination.AuthHandoff(handoffId = handoff, state = state)
+        }
+
+        val error = extractQueryParam(uri, "error")?.let { urlDecode(it) }
+        if (error != null) {
+            val sanitized = error.take(64).filter { it.isLetterOrDigit() || it == '_' || it == '-' }
+            if (sanitized.isEmpty()) return DeepLinkDestination.None
+            return DeepLinkDestination.AuthError(reason = sanitized, state = state)
+        }
+
+        return DeepLinkDestination.None
     }
 
     private fun extractQueryParam(

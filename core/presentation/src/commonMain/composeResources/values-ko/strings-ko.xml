@@ -743,6 +743,7 @@
 
     <!-- Personal Access Token sign-in -->
     <string name="pat_use_token_instead">문제가 있나요? Personal Access Token을 사용하세요</string>
+    <string name="auth_use_device_code_instead">대신 기기 코드 사용</string>
     <string name="pat_sheet_title">Personal Access Token으로 로그인</string>
     <string name="pat_sheet_description">GitHub에 접속할 수 있는 기기에서 Personal Access Token(classic 또는 fine-grained)을 만든 후 아래에 붙여넣으세요. 저장소와 프로필에 대한 읽기 권한이 필요합니다.</string>
     <string name="pat_open_settings">GitHub 토큰 설정 열기</string>

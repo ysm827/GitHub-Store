@@ -12,14 +12,17 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
+import zed.rainxch.auth.data.crypto.PkceGenerator
 import zed.rainxch.auth.data.network.BackendHttpException
 import zed.rainxch.auth.data.network.GitHubAuthApi
 import zed.rainxch.auth.data.network.PatValidation
+import zed.rainxch.auth.data.network.WebAuthApi
 import zed.rainxch.auth.domain.repository.AuthPath
 import zed.rainxch.auth.domain.repository.AuthenticationRepository
 import zed.rainxch.auth.domain.repository.DeviceFlowStart
 import zed.rainxch.auth.domain.repository.DevicePollResult
 import zed.rainxch.auth.domain.repository.PatRejectedException
+import zed.rainxch.auth.domain.repository.WebAuthRegistration
 import zed.rainxch.auth.domain.repository.PollOutcome
 import zed.rainxch.core.data.data_source.TokenStore
 import zed.rainxch.core.data.dto.GithubDeviceTokenSuccessDto
@@ -336,6 +339,38 @@ class AuthenticationRepositoryImpl(
             }
         }
     }
+
+    override suspend fun registerWebAuth(): Result<WebAuthRegistration> =
+        withContext(Dispatchers.IO) {
+            val pkce = PkceGenerator.generate()
+            WebAuthApi
+                .register(
+                    state = pkce.state,
+                    codeChallenge = pkce.codeChallenge,
+                    codeVerifier = pkce.codeVerifier,
+                ).map { authUrl ->
+                    WebAuthRegistration(state = pkce.state, authUrl = authUrl)
+                }
+        }
+
+    override suspend fun exchangeWebAuthHandoff(handoffId: String): Result<String> =
+        withContext(Dispatchers.IO) {
+            WebAuthApi.consumeHandoff(handoffId)
+                .mapCatching { accessToken ->
+                    val dto =
+                        GithubDeviceTokenSuccessDto(
+                            accessToken = accessToken,
+                            tokenType = "Bearer",
+                            expiresIn = null,
+                            scope = null,
+                            refreshToken = null,
+                            refreshTokenExpiresIn = null,
+                            savedAtEpochMillis = System.currentTimeMillis(),
+                        )
+                    saveTokenWithVerification(dto.toDomain())
+                    accessToken
+                }
+        }
 
     override suspend fun signInWithPat(token: String): Result<Unit> =
         withContext(Dispatchers.IO) {

@@ -12,6 +12,8 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.delay
 import org.koin.compose.viewmodel.koinViewModel
+import zed.rainxch.auth.presentation.AuthDeepLinkBus
+import zed.rainxch.auth.presentation.AuthDeepLinkEvent
 import zed.rainxch.core.presentation.components.announcements.CriticalAnnouncementModal
 import zed.rainxch.core.presentation.components.whatsnew.WhatsNewSheet
 import zed.rainxch.core.presentation.theme.GithubStoreTheme
@@ -59,6 +61,28 @@ fun App(deepLinkUri: String? = null) {
                         }
                         launchSingleTop = true
                         restoreState = true
+                    }
+                }
+
+                is DeepLinkDestination.AuthHandoff -> {
+                    AuthDeepLinkBus.publish(
+                        AuthDeepLinkEvent.Handoff(destination.handoffId, destination.state),
+                    )
+                    if (currentScreen !is GithubStoreGraph.AuthenticationScreen) {
+                        navController.navigate(GithubStoreGraph.AuthenticationScreen) {
+                            launchSingleTop = true
+                        }
+                    }
+                }
+
+                is DeepLinkDestination.AuthError -> {
+                    AuthDeepLinkBus.publish(
+                        AuthDeepLinkEvent.Error(destination.reason, destination.state),
+                    )
+                    if (currentScreen !is GithubStoreGraph.AuthenticationScreen) {
+                        navController.navigate(GithubStoreGraph.AuthenticationScreen) {
+                            launchSingleTop = true
+                        }
                     }
                 }
 

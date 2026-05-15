@@ -15,4 +15,8 @@ data class AuthenticationState(
     val patInput: String = "",
     val patError: String? = null,
     val isPatSubmitting: Boolean = false,
+    // Web OAuth flow is the default in 1.8.3. Device flow + PAT live behind
+    // this expandable for users who need them (corp firewalls, GFW etc).
+    val isAdvancedAuthVisible: Boolean = false,
+    val isWebAuthInFlight: Boolean = false,
 )

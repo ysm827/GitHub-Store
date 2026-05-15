@@ -39,4 +39,21 @@ sealed interface AuthenticationAction {
     data object SubmitPat : AuthenticationAction
 
     data object OpenPatSettingsPage : AuthenticationAction
+
+    // Web OAuth flow (default in 1.8.3). Device flow + PAT remain as fallbacks.
+    data object StartWebAuth : AuthenticationAction
+
+    data class ConsumeAuthHandoff(
+        val handoffId: String,
+        val state: String,
+    ) : AuthenticationAction
+
+    data class ConsumeAuthError(
+        val reason: String,
+        val state: String,
+    ) : AuthenticationAction
+
+    data object DismissAdvancedAuth : AuthenticationAction
+
+    data object OpenAdvancedAuth : AuthenticationAction
 }

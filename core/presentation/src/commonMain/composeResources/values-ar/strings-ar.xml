@@ -748,6 +748,7 @@
 
     <!-- Personal Access Token sign-in -->
     <string name="pat_use_token_instead">هل تواجه مشكلة؟ استخدم Personal Access Token</string>
+    <string name="auth_use_device_code_instead">استخدم رمز الجهاز بدلاً من ذلك</string>
     <string name="pat_sheet_title">تسجيل الدخول باستخدام Personal Access Token</string>
     <string name="pat_sheet_description">أنشئ Personal Access Token (classic أو fine-grained) على أي جهاز يمكنه الوصول إلى GitHub، ثم الصقه أدناه. يتطلب صلاحية قراءة للمستودعات وملفك الشخصي.</string>
     <string name="pat_open_settings">فتح إعدادات رموز GitHub</string>

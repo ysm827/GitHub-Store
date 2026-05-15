@@ -715,6 +715,7 @@
 
     <!-- Personal Access Token sign-in -->
     <string name="pat_use_token_instead">Проблемы со входом? Используйте Personal Access Token</string>
+    <string name="auth_use_device_code_instead">Использовать код устройства</string>
     <string name="pat_sheet_title">Вход с Personal Access Token</string>
     <string name="pat_sheet_description">Создайте Personal Access Token (classic или fine-grained) на устройстве, где доступен GitHub, и вставьте его ниже. Требуется доступ на чтение к репозиториям и вашему профилю.</string>
     <string name="pat_open_settings">Открыть настройки токенов GitHub</string>

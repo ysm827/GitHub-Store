@@ -84,6 +84,7 @@ class AuthenticationViewModel(
                     }
 
                     restoreFromSavedState()
+                    observeAuthDeepLinks()
                     hasLoadedInitialData = true
                 }
             }.stateIn(
@@ -175,6 +176,26 @@ class AuthenticationViewModel(
             AuthenticationAction.OpenPatSettingsPage -> {
                 openPatSettingsPage()
             }
+
+            AuthenticationAction.StartWebAuth -> {
+                startWebAuth()
+            }
+
+            is AuthenticationAction.ConsumeAuthHandoff -> {
+                consumeAuthHandoff(action.handoffId, action.state)
+            }
+
+            is AuthenticationAction.ConsumeAuthError -> {
+                consumeAuthError(action.reason, action.state)
+            }
+
+            AuthenticationAction.OpenAdvancedAuth -> {
+                _state.update { it.copy(isAdvancedAuthVisible = true) }
+            }
+
+            AuthenticationAction.DismissAdvancedAuth -> {
+                _state.update { it.copy(isAdvancedAuthVisible = false) }
+            }
         }
     }
 
@@ -230,6 +251,148 @@ class AuthenticationViewModel(
                 }
         }.also { job ->
             job.invokeOnCompletion { patSubmissionJob = null }
+        }
+    }
+
+    private fun observeAuthDeepLinks() {
+        viewModelScope.launch {
+            AuthDeepLinkBus.events.collect { event ->
+                when (event) {
+                    is AuthDeepLinkEvent.Handoff -> {
+                        consumeAuthHandoff(event.handoffId, event.state)
+                        AuthDeepLinkBus.resetReplay()
+                    }
+                    is AuthDeepLinkEvent.Error -> {
+                        consumeAuthError(event.reason, event.state)
+                        AuthDeepLinkBus.resetReplay()
+                    }
+                }
+            }
+        }
+    }
+
+    private fun startWebAuth() {
+        if (_state.value.isWebAuthInFlight) return
+        viewModelScope.launch {
+            _state.update {
+                it.copy(
+                    isWebAuthInFlight = true,
+                    loginState = AuthLoginState.Pending,
+                )
+            }
+            val result = authenticationRepository.registerWebAuth()
+            result
+                .onSuccess { registration ->
+                    savedStateHandle[KEY_WEB_AUTH_STATE] = registration.state
+                    browserHelper.openUrl(registration.authUrl) { error ->
+                        logger.warn("Failed to open auth URL: $error")
+                    }
+                    _state.update { it.copy(isWebAuthInFlight = false) }
+                }
+                .onFailure { error ->
+                    val rootClass = error::class.simpleName ?: "Throwable"
+                    val rootMsg = error.message ?: "<no message>"
+                    logger.error(
+                        "registerWebAuth failed. class=$rootClass msg=$rootMsg",
+                        error,
+                    )
+                    val (message, hint) = categorizeError(error)
+                    _state.update {
+                        it.copy(
+                            isWebAuthInFlight = false,
+                            loginState =
+                                AuthLoginState.Error(
+                                    message = message,
+                                    recoveryHint = hint,
+                                ),
+                        )
+                    }
+                }
+        }
+    }
+
+    private fun consumeAuthHandoff(handoffId: String, state: String) {
+        val expected = savedStateHandle.get<String>(KEY_WEB_AUTH_STATE)
+        if (expected == null || expected != state) {
+            logger.warn(
+                "Web-auth handoff state mismatch. expected=${expected?.take(8)} got=${state.take(8)}",
+            )
+            viewModelScope.launch {
+                _state.update {
+                    it.copy(
+                        loginState =
+                            AuthLoginState.Error(
+                                message = getString(Res.string.error_unknown),
+                                recoveryHint = getString(Res.string.auth_hint_try_again),
+                            ),
+                    )
+                }
+            }
+            return
+        }
+        savedStateHandle.remove<String>(KEY_WEB_AUTH_STATE)
+
+        viewModelScope.launch {
+            _state.update {
+                it.copy(
+                    isWebAuthInFlight = true,
+                    loginState = AuthLoginState.Pending,
+                )
+            }
+            val result = authenticationRepository.exchangeWebAuthHandoff(handoffId)
+            result
+                .onSuccess {
+                    _state.update {
+                        it.copy(
+                            isWebAuthInFlight = false,
+                            loginState = AuthLoginState.LoggedIn,
+                        )
+                    }
+                    _events.trySend(AuthenticationEvents.OnNavigateToMain)
+                }
+                .onFailure { error ->
+                    val rootClass = error::class.simpleName ?: "Throwable"
+                    val rootMsg = error.message ?: "<no message>"
+                    logger.error(
+                        "exchangeWebAuthHandoff failed. class=$rootClass msg=$rootMsg",
+                        error,
+                    )
+                    val (message, hint) = categorizeError(error)
+                    _state.update {
+                        it.copy(
+                            isWebAuthInFlight = false,
+                            loginState =
+                                AuthLoginState.Error(
+                                    message = message,
+                                    recoveryHint = hint,
+                                ),
+                        )
+                    }
+                }
+        }
+    }
+
+    private fun consumeAuthError(reason: String, state: String) {
+        val expected = savedStateHandle.get<String>(KEY_WEB_AUTH_STATE)
+        if (expected != null && expected != state) {
+            logger.warn(
+                "Web-auth error state mismatch (ignored). expected=${expected.take(8)} got=${state.take(8)}",
+            )
+            return
+        }
+        savedStateHandle.remove<String>(KEY_WEB_AUTH_STATE)
+        logger.warn("Web-auth flow returned error: $reason")
+        viewModelScope.launch {
+            _state.update {
+                it.copy(
+                    isWebAuthInFlight = false,
+                    loginState =
+                        AuthLoginState.Error(
+                            message = getString(Res.string.error_unknown),
+                            recoveryHint = getString(Res.string.auth_hint_try_again),
+                        ),
+                )
+            }
         }
     }
 
@@ -663,6 +826,7 @@ class AuthenticationViewModel(
         private const val KEY_EXPIRES_IN_SEC = "auth_expires_in_sec"
         private const val KEY_START_TIME_MILLIS = "auth_start_time_millis"
         private const val KEY_AUTH_PATH = "auth_path"
+        private const val KEY_WEB_AUTH_STATE = "auth_web_state"
         private const val DEFAULT_POLL_INTERVAL_SEC = 5
 
         /**
@@ -692,6 +856,7 @@ class AuthenticationViewModel(
                 KEY_EXPIRES_IN_SEC,
                 KEY_START_TIME_MILLIS,
                 KEY_AUTH_PATH,
+                KEY_WEB_AUTH_STATE,
             )
     }
 }
