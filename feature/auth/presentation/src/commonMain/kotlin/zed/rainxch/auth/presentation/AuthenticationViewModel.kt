@@ -365,6 +365,13 @@ class AuthenticationViewModel(
                 countdownJob?.cancel()
                 pollingJob?.cancel()
                 clearSavedState()
+                val rootCause = generateSequence<Throwable>(t) { it.cause }.lastOrNull() ?: t
+                val rootClass = rootCause::class.simpleName ?: "Throwable"
+                val rootMsg = rootCause.message ?: "<no message>"
+                logger.error(
+                    "startDeviceFlow failed. topClass=${t::class.simpleName} topMsg=${t.message} | rootClass=$rootClass rootMsg=$rootMsg",
+                    t,
+                )
                 val (message, hint) = categorizeError(t)
                 withContext(Dispatchers.Main.immediate) {
                     _state.update {
