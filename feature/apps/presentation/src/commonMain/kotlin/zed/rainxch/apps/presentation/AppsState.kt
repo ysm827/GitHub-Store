@@ -105,7 +105,8 @@ data class AppsState(
             return searched
                 .sortedWith(
                     compareBy<DeviceAppUi> { it.installerCategory.sortPriority }
-                        .thenBy { it.appName.lowercase() },
+                        .thenBy { it.appName.lowercase() }
+                        .thenBy { it.packageName },
                 ).toImmutableList()
         }
 
