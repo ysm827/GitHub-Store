@@ -25,7 +25,8 @@
         "Root ile sessiz yükleme artık 'Root yok' hatasını anında bildirmek yerine Android 14+ üzerinde Magisk / KernelSU izin istemini düzgün tetikliyor; root yolu libsu üzerine yeniden yazıldı.",
         "Yüklü bir uygulamayı GitHub repo'suna bağlamak, yüklü sürüm daha eskiyse artık yanıltıcı 'Yükle vX' yerine hemen 'X sürümüne güncelle' gösterir.",
         "Masaüstü yan çekmecesi artık 'G' placeholder'ı yerine gerçek GitHub Store logosunu gösteriyor.",
-        "Masaüstü içerik genişliği (Home, Detaylar, Auth) artık pencerenin kesri olarak ölçekleniyor — Kompakt / Geniş / Çok geniş, sabit piksel genişliklerinde sınırlı kalmak yerine monitör boyutuna uyum sağlıyor."
+        "Masaüstü içerik genişliği (Home, Detaylar, Auth) artık pencerenin kesri olarak ölçekleniyor — Kompakt / Geniş / Çok geniş, sabit piksel genişliklerinde sınırlı kalmak yerine monitör boyutuna uyum sağlıyor.",
+        "Linux masaüstü artık glibc 2.42+ (Fedora 43, Ubuntu 26.04, Debian 13, Bazzite) üzerinde başlatılırken çökmüyor — AppImage, deb, rpm ve Arch yapıları artık bozuk paketlenmiş başlatıcıyı atlayıp JVM'yi doğrudan başlatıyor."
       ]
     }
   ]

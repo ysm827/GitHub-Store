@@ -322,12 +322,17 @@ jobs:
           APPDIR="GitHub-Store.AppDir"
           mv "$APP_ROOT" "$APPDIR"
 
+          # Install the JVM-direct launcher that bypasses the jpackage native
+          # launcher (crashes in glibc setenv() on glibc >= 2.42, see GH#563).
+          cp packaging/linux/github-store-launcher.sh "$APPDIR/bin/github-store-launcher.sh"
+          chmod +x "$APPDIR/bin/github-store-launcher.sh"
+
           # Create AppRun entry point
           cat > "$APPDIR/AppRun" << 'EOF'
           #!/bin/bash
           SELF=$(readlink -f "$0")
           HERE=${SELF%/*}
-          exec "${HERE}/bin/GitHub-Store" "$@"
+          exec "${HERE}/bin/github-store-launcher.sh" "$@"
           EOF
           chmod +x "$APPDIR/AppRun"
 
@@ -360,9 +365,10 @@ jobs:
           ls -lh "$OUTPUT" "$OUTPUT.zsync"
         shell: bash
 
-      - name: Patch deb scripts for headless/WSL compatibility
+      - name: Patch deb (headless compat + native-launcher bypass GH#563)
         run: |
           set -euo pipefail
+          WRAPPER="$(pwd)/packaging/linux/github-store-launcher.sh"
           for deb in composeApp/build/compose/binaries/main/deb/*.deb; do
             [ -f "$deb" ] || continue
             echo "Patching: $deb"
@@ -376,10 +382,62 @@ jobs:
               sed -i '/xdg-desktop-menu\|xdg-icon-resource\|xdg-mime/{/|| true$/!s/$/ || true/}' "$script"
             done
 
+            # Replace the jpackage native launcher with the JVM-direct wrapper.
+            # The native launcher crashes in glibc setenv() on glibc >= 2.42
+            # before the JVM maps (GH#563). The installed .desktop Exec path is
+            # unchanged, so it transparently runs the wrapper instead.
+            launcher="$(find "$tmpdir/opt" -type f -path '*/bin/GitHub-Store' 2>/dev/null | head -n1 || true)"
+            if [ -n "$launcher" ] && head -c4 "$launcher" | grep -q $'\x7fELF'; then
+              echo "Swapping native launcher: $launcher"
+              mv "$launcher" "${launcher}.bin"
+              cp "$WRAPPER" "$launcher"
+              chmod +x "$launcher"
+            else
+              echo "WARNING: native launcher not found or already a script in $deb"
+            fi
+
             dpkg-deb -b "$tmpdir" "$deb"
             rm -rf "$tmpdir"
             echo "Patched successfully: $deb"
           done
+        shell: bash
+
+      - name: Patch rpm (native-launcher bypass GH#563)
+        run: |
+          set -uo pipefail
+          shopt -s nullglob
+          rpms=(composeApp/build/compose/binaries/main/rpm/*.rpm)
+          [ ${#rpms[@]} -gt 0 ] || { echo "No rpm to patch"; exit 0; }
+
+          if ! sudo apt-get install -y rpmrebuild rpm >/dev/null 2>&1; then
+            echo "::warning::could not install rpmrebuild; dropping unpatched rpm(s) to avoid shipping the GH#563 crash"
+            rm -f "${rpms[@]}"
+            exit 0
+          fi
+
+          WRAPPER="$(pwd)/packaging/linux/github-store-launcher.sh"
+          OUTDIR="$(mktemp -d)"
+          for rpm in "${rpms[@]}"; do
+            echo "Patching: $rpm"
+            # Overwrite the native launcher in-place with the JVM-direct wrapper.
+            # Keeps the %files manifest path intact, swaps ELF -> script.
+            if rpmrebuild --change-files="cp '$WRAPPER' ./opt/github-store/bin/GitHub-Store; chmod 0755 ./opt/github-store/bin/GitHub-Store" \
+                 -p -n -d "$OUTDIR" "$rpm"; then
+              rebuilt="$(find "$OUTDIR" -name '*.rpm' -newer "$WRAPPER" | head -n1 || true)"
+              if [ -n "$rebuilt" ]; then
+                mv -f "$rebuilt" "$rpm"
+                echo "Patched successfully: $rpm"
+              else
+                echo "::warning::rpmrebuild produced no output for $rpm; dropping it to avoid shipping the GH#563 crash"
+                rm -f "$rpm"
+              fi
+            else
+              echo "::warning::rpmrebuild failed for $rpm; dropping it to avoid shipping the GH#563 crash"
+              rm -f "$rpm"
+            fi
+            rm -f "$OUTDIR"/*/*.rpm 2>/dev/null || true
+          done
+          rm -rf "$OUTDIR"
         shell: bash
 
       - name: Upload Linux installers
@@ -439,9 +497,14 @@ jobs:
           mkdir -p "$PKG_DIR/opt/github-store"
           cp -a "$APP_ROOT"/. "$PKG_DIR/opt/github-store/"
 
+          # Install the JVM-direct launcher that bypasses the jpackage native
+          # launcher (crashes in glibc setenv() on glibc >= 2.42, see GH#563).
+          cp packaging/linux/github-store-launcher.sh "$PKG_DIR/opt/github-store/bin/github-store-launcher.sh"
+          chmod +x "$PKG_DIR/opt/github-store/bin/github-store-launcher.sh"
+
           # Launcher symlink
           mkdir -p "$PKG_DIR/usr/bin"
-          ln -s "/opt/github-store/bin/GitHub-Store" "$PKG_DIR/usr/bin/github-store"
+          ln -s "/opt/github-store/bin/github-store-launcher.sh" "$PKG_DIR/usr/bin/github-store"
 
           # Desktop entry
           mkdir -p "$PKG_DIR/usr/share/applications"
@@ -449,7 +512,7 @@ jobs:
           [Desktop Entry]
           Type=Application
           Name=GitHub Store
-          Exec=/opt/github-store/bin/GitHub-Store
+          Exec=/opt/github-store/bin/github-store-launcher.sh
           Icon=github-store
           Categories=Development;
           Comment=Cross-platform app store for GitHub releases
